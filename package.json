@@ -1,0 +1,27 @@
+{
+  "name": "url-short-sf",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "twigcs": "vendor/bin/twigcs templates",
+    "prepare": "husky",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "php-cs-fix": "vendor/bin/php-cs-fixer fix --using-cache=no"
+  },
+  "lint-staged": {
+    "*.{js,ts,css,scss,html,json,md,yml,yaml}": "prettier --write",
+    "*.php": "vendor/bin/php-cs-fixer fix --using-cache=no --quiet",
+    "*.twig": "vendor/bin/twigcs --display=errors --severity error"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.6",
+    "prettier": "^3.6.2",
+    "prettier-plugin-twig-melody": "^0.4.6"
+  }
+}
