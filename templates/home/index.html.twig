@@ -6,10 +6,10 @@
       <h1 class="h1">Prévisions météo locales</h1>
       <p class="muted">Entrez une ville pour obtenir un aperçu clair et rapide.</p>
 
-      <form class="grid" method="get" action="#" autocomplete="off" role="search" aria-label="Recherche de ville">
+      <form class="grid" method="get" action="/weather" autocomplete="off" role="search" aria-label="Recherche de ville">
         <div class="input-wrap">
           <svg aria-hidden="true" class="icon"><use href="#icon-search"/></svg>
-          <input class="input" name="q" placeholder="Rechercher une ville (ex. Paris, Lyon, Toulouse)" />
+          <input class="input" name="city" placeholder="Rechercher une ville (ex. Paris, Lyon, Toulouse)" />
         </div>
         <div class="actions">
           <button class="btn" type="submit">Rechercher</button>
@@ -19,6 +19,7 @@
           </button>
         </div>
       </form>
+
 
       {# Message area for geolocation feedback #}
       <div id="geo-message" class="geo-message muted small"></div>
