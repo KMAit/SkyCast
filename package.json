@@ -5,6 +5,9 @@
   "scripts": {
     "twigcs": "vendor/bin/twigcs templates",
     "prepare": "husky",
+    "lint:twig": "composer exec -- twigcs templates",
+    "lint:css": "stylelint \"assets/**/*.css\"",
+    "lint:js": "eslint \"assets/**/*.js\"",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "php-cs-fix": "vendor/bin/php-cs-fixer fix --using-cache=no"
