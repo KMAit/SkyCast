@@ -1,0 +1,6 @@
+ruleset: "FriendsOfTwig\\Twigcs\\Ruleset\\Official"
+
+finder:
+  name: '*.twig'
+  path: 'templates'
+  not-path: 'var'
