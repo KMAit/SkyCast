@@ -6,7 +6,7 @@
       <h1 class="h1">Prévisions météo locales</h1>
       <p class="muted">Entrez une ville pour obtenir un aperçu clair et rapide.</p>
 
-      <form class="grid" method="get" action="{{ path('home') }}" autocomplete="off" role="search" aria-label="Recherche de ville">
+      <form id="city-form" class="grid" method="get" action="{{ path('home') }}" autocomplete="off" role="search" aria-label="Recherche de ville">
         <div class="input-wrap">
           <svg aria-hidden="true" class="icon"><use href="#icon-search"/></svg>
           <input
@@ -16,6 +16,10 @@
             value="{{ city|default('') }}"
           />
         </div>
+
+        <input type="hidden" name="lat" id="geo-lat">
+        <input type="hidden" name="lon" id="geo-lon">
+
         <div class="actions">
           <button class="btn" type="submit">Rechercher</button>
           <button class="btn btn-secondary" type="button" title="Utiliser ma position" aria-label="Utiliser ma position">
@@ -25,8 +29,12 @@
         </div>
       </form>
 
-      {# Message area for geolocation feedback #}
       <div id="geo-message" class="geo-message muted small"></div>
+
+      {# Display backend error if any #}
+      {% if error is defined and error %}
+        <div class="geo-message error small">{{ error }}</div>
+      {% endif %}
 
       <p class="muted small">Astuce : appuyez sur Entrée pour lancer la recherche.</p>
     </div>

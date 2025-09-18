@@ -33,6 +33,7 @@ final class HomeController extends AbstractController
         $lon = $request->query->get('lon');
 
         $forecast = null;
+        $error = null;
 
         if ('' !== $city) {
             $forecast = $this->weatherService->getForecastByCity(
@@ -40,6 +41,9 @@ final class HomeController extends AbstractController
                 timezone: 'Europe/Paris',
                 hours: 12
             );
+            if (null === $forecast) {
+                $error = sprintf('Impossible de trouver les prévisions pour « %s ».', $city);
+            }
         } elseif (null !== $lat && null !== $lon) {
             $forecast = $this->weatherService->getForecastByCoords(
                 (float) $lat,
@@ -47,6 +51,9 @@ final class HomeController extends AbstractController
                 timezone: 'Europe/Paris',
                 hours: 12
             );
+            if (null === $forecast) {
+                $error = 'Impossible de récupérer les prévisions pour votre position.';
+            }
         }
 
         // Default placeholders
@@ -95,6 +102,7 @@ final class HomeController extends AbstractController
             'cards' => $cards,
             'hours' => $hours,
             'city' => $city,
+            'error' => $error,
         ]);
     }
 }
