@@ -1,0 +1,37 @@
+{# Usage examples:
+   Minimal with placeholder:
+   {% include 'components/_forecast_hourly.html.twig' %}
+
+   With data:
+   {% include 'components/_forecast_hourly.html.twig' with {
+     hours: [
+       { time: '14:00', temp: '22°C', wind: '12 km/h', precip: '10%' },
+       { time: '15:00', temp: '23°C', wind: '14 km/h', precip: '5%'  },
+       { time: '16:00', temp: '23°C', wind: '20 km/h', precip: '0%'  },
+     ]
+   } %}
+#}
+
+<section class="card section-gap">
+  <h2 class="h2">
+    <svg class="icon" aria-hidden="true"><use href="#icon-clock"/></svg>
+    <span>Prévision horaire</span>
+  </h2>
+
+  {% if hours is not defined or hours is empty %}
+    <p class="muted">— en attente de résultats —</p>
+  {% else %}
+    <div class="grid grid-3" role="list" aria-label="Prévision horaire">
+      {% for h in hours %}
+        <article class="card" role="listitem" aria-label="Heure {{ h.time|default('—') }}">
+          <div class="small muted">{{ h.time|default('—:—') }}</div>
+          <div style="margin-top:8px">
+            <div><strong>Temp.</strong> : {{ h.temp|default('—') }}</div>
+            <div><strong>Vent</strong> : {{ h.wind|default('—') }}</div>
+            <div><strong>Précip.</strong> : {{ h.precip|default('—') }}</div>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% endif %}
+</section>

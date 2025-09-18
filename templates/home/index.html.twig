@@ -20,7 +20,7 @@
         </div>
       </form>
 
-      {# Zone de message pour la géolocalisation #}
+      {# Message area for geolocation feedback #}
       <div id="geo-message" class="geo-message muted small"></div>
 
       <p class="muted small">Astuce : appuyez sur Entrée pour lancer la recherche.</p>
@@ -52,11 +52,6 @@
     } %}
   </section>
 
-  <section class="card section-gap">
-    <h2 class="h2">
-      <svg class="icon" aria-hidden="true"><use href="#icon-clock"/></svg>
-      <span>Prévision horaire</span>
-    </h2>
-    <p class="muted">Arrivera avec l'intégration API.</p>
-  </section>
+  {# Hourly forecast partial #}
+  {% include 'components/_forecast_hourly.html.twig' %}
 {% endblock %}
