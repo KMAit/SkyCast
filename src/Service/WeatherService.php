@@ -7,9 +7,22 @@ namespace App\Service;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
+/**
+ * Small wrapper around Open-Meteo APIs.
+ *
+ * Responsibilities:
+ *  - Geocode a city name to coordinates
+ *  - Fetch current + hourly forecast for given coordinates
+ *  - Convenience: fetch forecast for a city (geocode + forecast)
+ *
+ * Note: no reverse geocoding on purpose (not provided as a stable public endpoint).
+ */
 final class WeatherService
 {
+    /** Base URL for geocoding (city → coordinates). */
     private const GEO_BASE = 'https://geocoding-api.open-meteo.com/v1/search';
+
+    /** Base URL for weather forecast. */
     private const METEO_BASE = 'https://api.open-meteo.com/v1/forecast';
 
     public function __construct(
@@ -18,16 +31,19 @@ final class WeatherService
     }
 
     /**
-     * Geocode a city name to coordinates using Open-Meteo's free geocoding API.
+     * Geocode a city name using Open-Meteo.
      *
-     * @return array|null Example:
-     *                    [
-     *                    'name' => 'Paris',
-     *                    'latitude' => 48.8566,
-     *                    'longitude' => 2.3522,
-     *                    'country' => 'France',
-     *                    'admin1' => 'Île-de-France',
-     *                    ]
+     * @param string $cityName Human-entered city name
+     * @param int    $count    Max results to fetch (default 1)
+     * @param string $language Output language (e.g. "fr")
+     *
+     * @return array|null Normalized first match or null when no result / on failure.
+     *                    Keys:
+     *                    - name      (string)
+     *                    - latitude  (float|null)
+     *                    - longitude (float|null)
+     *                    - country   (string)
+     *                    - admin1    (string)
      */
     public function geocodeCity(string $cityName, int $count = 1, string $language = 'fr'): ?array
     {
@@ -47,9 +63,7 @@ final class WeatherService
             ]);
 
             $payload = $response->toArray(false);
-        } catch (TransportExceptionInterface $e) {
-            return null;
-        } catch (\Throwable $e) {
+        } catch (TransportExceptionInterface|\Throwable) {
             return null;
         }
 
@@ -69,10 +83,25 @@ final class WeatherService
     }
 
     /**
-     * Fetch current and hourly forecast for given coordinates.
+     * Fetch current conditions and a short hourly forecast for given coordinates.
+     *
+     * @param float  $latitude  Decimal degrees
+     * @param float  $longitude Decimal degrees
+     * @param string $timezone  IANA TZ (e.g. "Europe/Paris" or "auto")
+     * @param int    $hours     Number of hourly points to keep (default 12)
+     *
+     * @return array|null Forecast payload or null on failure.
+     *                    Keys:
+     *                    - location: [latitude, longitude]
+     *                    - current:  current weather data or null
+     *                    - hourly:   list of rows {time, temperature, wind, precip}
      */
-    public function getForecastByCoords(float $latitude, float $longitude, string $timezone = 'auto', int $hours = 12): ?array
-    {
+    public function getForecastByCoords(
+        float $latitude,
+        float $longitude,
+        string $timezone = 'auto',
+        int $hours = 12,
+    ): ?array {
         try {
             $response = $this->http->request('GET', self::METEO_BASE, [
                 'query' => [
@@ -80,19 +109,13 @@ final class WeatherService
                     'longitude' => $longitude,
                     'timezone' => $timezone,
                     'current_weather' => 'true',
-                    'hourly' => implode(',', [
-                        'temperature_2m',
-                        'precipitation',
-                        'wind_speed_10m',
-                    ]),
+                    'hourly' => 'temperature_2m,precipitation,wind_speed_10m',
                 ],
                 'timeout' => 8,
             ]);
 
             $payload = $response->toArray(false);
-        } catch (TransportExceptionInterface $e) {
-            return null;
-        } catch (\Throwable $e) {
+        } catch (TransportExceptionInterface|\Throwable) {
             return null;
         }
 
@@ -100,7 +123,6 @@ final class WeatherService
             return null;
         }
 
-        // Extract hourly arrays
         $times = $payload['hourly']['time'];
         $temperatures = $payload['hourly']['temperature_2m'] ?? [];
         $windspeeds = $payload['hourly']['wind_speed_10m'] ?? [];
@@ -138,7 +160,14 @@ final class WeatherService
     }
 
     /**
-     * Convenience method: geocode a city then fetch forecast for it.
+     * Convenience: geocode a city, then fetch its forecast.
+     *
+     * @param string $city     City name
+     * @param string $timezone IANA TZ (e.g. "Europe/Paris" or "auto")
+     * @param int    $hours    Number of hourly points to keep (default 12)
+     *
+     * @return array|null same structure as getForecastByCoords(),
+     *                    with an extra "place" key describing the matched city
      */
     public function getForecastByCity(string $city, string $timezone = 'auto', int $hours = 12): ?array
     {
@@ -148,7 +177,7 @@ final class WeatherService
         }
 
         $forecast = $this->getForecastByCoords($geoData['latitude'], $geoData['longitude'], $timezone, $hours);
-        if (!$forecast) {
+        if (null === $forecast) {
             return null;
         }
 

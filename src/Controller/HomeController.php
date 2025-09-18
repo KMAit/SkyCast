@@ -11,12 +11,13 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
 /**
- * Home page for SkyCast.
+ * SkyCast landing page controller.
  *
- * Accepts either:
- *   - ?city=Paris
- *   - ?lat=48.8566&lon=2.3522
- * Renders the home template with cards + hourly forecast data when available.
+ * Input modes:
+ *  - GET /?city=Paris
+ *  - GET /?lat=48.85&lon=2.35   (from geolocation)
+ *
+ * Renders the page with KPI cards and an hourly forecast slice.
  */
 final class HomeController extends AbstractController
 {
@@ -25,6 +26,13 @@ final class HomeController extends AbstractController
     ) {
     }
 
+    /**
+     * Render the home page with optional forecast data.
+     *
+     * @param Request $request HTTP request (reads 'city' or 'lat'/'lon' query params)
+     *
+     * @return Response Full HTML response
+     */
     #[Route('/', name: 'home', methods: ['GET'])]
     public function index(Request $request): Response
     {
@@ -36,36 +44,28 @@ final class HomeController extends AbstractController
         $error = null;
 
         if ('' !== $city) {
-            $forecast = $this->weatherService->getForecastByCity(
-                $city,
-                timezone: 'Europe/Paris',
-                hours: 12
-            );
+            $forecast = $this->weatherService->getForecastByCity($city, timezone: 'Europe/Paris', hours: 12);
             if (null === $forecast) {
                 $error = sprintf('Impossible de trouver les prévisions pour « %s ».', $city);
             }
         } elseif (null !== $lat && null !== $lon) {
-            $forecast = $this->weatherService->getForecastByCoords(
-                (float) $lat,
-                (float) $lon,
-                timezone: 'Europe/Paris',
-                hours: 12
-            );
+            $forecast = $this->weatherService->getForecastByCoords((float) $lat, (float) $lon, timezone: 'Europe/Paris', hours: 12);
             if (null === $forecast) {
                 $error = 'Impossible de récupérer les prévisions pour votre position.';
             }
         }
 
-        // Default placeholders
+        // Default placeholders for cards
         $cards = [
             'temperature' => '— en attente de résultats —',
             'wind' => '— en attente de résultats —',
             'precipitation' => '— en attente de résultats —',
         ];
-        $hours = []; // expected by _forecast_hourly.html.twig
+
+        // Hourly forecast rows for the partial
+        $hours = [];
 
         if (null !== $forecast) {
-            // Fill cards from current weather (fallback-safe)
             $current = $forecast['current'] ?? null;
 
             if (null !== $current) {
@@ -82,7 +82,6 @@ final class HomeController extends AbstractController
                 $cards['precipitation'] = null !== $firstHourPrecip ? sprintf('<strong>%.1f mm</strong>', $firstHourPrecip) : '—';
             }
 
-            // Map hourly data for the partial
             foreach ($forecast['hourly'] as $row) {
                 $isoTime = (string) ($row['time'] ?? '');
                 $hhmm = '' !== $isoTime ? substr($isoTime, 11, 5) : '—:—';

@@ -17,6 +17,7 @@
           />
         </div>
 
+        {# Hidden fields used by the geolocation flow #}
         <input type="hidden" name="lat" id="geo-lat">
         <input type="hidden" name="lon" id="geo-lon">
 
@@ -65,8 +66,7 @@
     } %}
   </section>
 
-  {# Hourly forecast partial #}
   {% include 'components/_forecast_hourly.html.twig' with {
     hours: hours
-    } %}
+  } %}
 {% endblock %}
