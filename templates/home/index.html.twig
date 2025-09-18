@@ -6,10 +6,15 @@
       <h1 class="h1">Prévisions météo locales</h1>
       <p class="muted">Entrez une ville pour obtenir un aperçu clair et rapide.</p>
 
-      <form class="grid" method="get" action="/weather" autocomplete="off" role="search" aria-label="Recherche de ville">
+      <form class="grid" method="get" action="{{ path('home') }}" autocomplete="off" role="search" aria-label="Recherche de ville">
         <div class="input-wrap">
           <svg aria-hidden="true" class="icon"><use href="#icon-search"/></svg>
-          <input class="input" name="city" placeholder="Rechercher une ville (ex. Paris, Lyon, Toulouse)" />
+          <input
+            class="input"
+            name="city"
+            placeholder="Rechercher une ville (ex. Paris, Lyon, Toulouse)"
+            value="{{ city|default('') }}"
+          />
         </div>
         <div class="actions">
           <button class="btn" type="submit">Rechercher</button>
@@ -19,7 +24,6 @@
           </button>
         </div>
       </form>
-
 
       {# Message area for geolocation feedback #}
       <div id="geo-message" class="geo-message muted small"></div>
@@ -37,22 +41,24 @@
     {% include 'components/_weather_card.html.twig' with {
       icon: 'icon-thermo',
       title: 'Température',
-      content: '— en attente de résultats —'
+      content: cards.temperature|raw
     } %}
 
     {% include 'components/_weather_card.html.twig' with {
       icon: 'icon-wind',
       title: 'Vent',
-      content: '— en attente de résultats —'
+      content: cards.wind|raw
     } %}
 
     {% include 'components/_weather_card.html.twig' with {
       icon: 'icon-drop',
       title: 'Précipitations',
-      content: '— en attente de résultats —'
+      content: cards.precipitation|raw
     } %}
   </section>
 
   {# Hourly forecast partial #}
-  {% include 'components/_forecast_hourly.html.twig' %}
+  {% include 'components/_forecast_hourly.html.twig' with {
+    hours: hours
+    } %}
 {% endblock %}
