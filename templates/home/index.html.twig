@@ -32,6 +32,17 @@
 
       <div id="geo-message" class="geo-message muted small"></div>
 
+      {# Location banner #}
+      {% if place %}
+        <p class="muted small">
+          Lieu : {{ place.name }}{% if place.admin1 %} ({{ place.admin1 }}){% endif %}{% if place.country %}, {{ place.country }}{% endif %}
+        </p>
+      {% elseif coords %}
+        <p class="muted small">
+          Coordonnées : {{ coords.latitude|number_format(4, '.', '') }}, {{ coords.longitude|number_format(4, '.', '') }}
+        </p>
+      {% endif %}
+
       {# Display backend error if any #}
       {% if error is defined and error %}
         <div class="geo-message error small">{{ error }}</div>

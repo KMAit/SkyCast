@@ -6,13 +6,20 @@
 function handleGeoSuccess(position) {
   const { latitude, longitude, accuracy } = position.coords;
 
-  console.debug('[SkyCast] Geolocation success:', { latitude, longitude, accuracy });
+  const form = document.getElementById('city-form');
+  const cityInput = form?.querySelector('input[name="city"]');
+  if (cityInput) cityInput.value = '';
 
-  // TODO: remplacer par un appel API interne
   displayMessage(
     `Position détectée : ${latitude.toFixed(4)}, ${longitude.toFixed(4)} (±${Math.round(accuracy)}m)`,
     'success'
   );
+
+  // Explicit redirection with lat/lon
+  const url = new URL(form?.action || '/', window.location.origin);
+  url.searchParams.set('lat', latitude.toString());
+  url.searchParams.set('lon', longitude.toString());
+  window.location.assign(url.toString());
 }
 
 /**
