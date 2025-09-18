@@ -1,0 +1,62 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+  <section class="hero">
+    <div class="card">
+      <h1 class="h1">Prévisions météo locales</h1>
+      <p class="muted">Entrez une ville pour obtenir un aperçu clair et rapide.</p>
+
+      <form class="grid" method="get" action="#" autocomplete="off" role="search" aria-label="Recherche de ville">
+        <div class="input-wrap">
+          <svg aria-hidden="true" class="icon"><use href="#icon-search"/></svg>
+          <input class="input" name="q" placeholder="Rechercher une ville (ex. Paris, Lyon, Toulouse)" />
+        </div>
+        <div class="actions">
+          <button class="btn" type="submit">Rechercher</button>
+          <button class="btn btn-secondary" type="button" title="Utiliser ma position" aria-label="Utiliser ma position">
+            <svg class="icon" aria-hidden="true"><use href="#icon-pin"/></svg>
+            <span class="btn-text">Autour de moi</span>
+          </button>
+        </div>
+      </form>
+
+      {# Zone de message pour la géolocalisation #}
+      <div id="geo-message" class="geo-message muted small"></div>
+
+      <p class="muted small">Astuce : appuyez sur Entrée pour lancer la recherche.</p>
+    </div>
+
+    <div class="hero-visual card" aria-hidden="true">
+      <div class="visual-placeholder"></div>
+      <p class="muted small">Aperçu graphique — sera remplacé par un visuel météo.</p>
+    </div>
+  </section>
+
+  <section class="grid grid-3 section-gap">
+    {% include 'components/_weather_card.html.twig' with {
+      icon: 'icon-thermo',
+      title: 'Température',
+      content: '— en attente de résultats —'
+    } %}
+
+    {% include 'components/_weather_card.html.twig' with {
+      icon: 'icon-wind',
+      title: 'Vent',
+      content: '— en attente de résultats —'
+    } %}
+
+    {% include 'components/_weather_card.html.twig' with {
+      icon: 'icon-drop',
+      title: 'Précipitations',
+      content: '— en attente de résultats —'
+    } %}
+  </section>
+
+  <section class="card section-gap">
+    <h2 class="h2">
+      <svg class="icon" aria-hidden="true"><use href="#icon-clock"/></svg>
+      <span>Prévision horaire</span>
+    </h2>
+    <p class="muted">Arrivera avec l'intégration API.</p>
+  </section>
+{% endblock %}

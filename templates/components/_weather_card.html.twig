@@ -1,0 +1,20 @@
+{# templates/components/_weather_card.html.twig #}
+{# Usage:
+   {% include 'components/_weather_card.html.twig' with {
+     icon: 'icon-thermo',
+     title: 'Température',
+     content: '— en attente de résultats —'
+   } %}
+#}
+
+<div class="card">
+  <h2 class="h2">
+    {% if icon is defined and icon %}
+      <svg class="icon" aria-hidden="true"><use href="#{{ icon }}"/></svg>
+    {% endif %}
+    <span>{{ title }}</span>
+  </h2>
+  <div class="weather-content">
+    {{ content|raw }}
+  </div>
+</div>
