@@ -29,16 +29,16 @@ final class WeatherService
      *                    'admin1' => 'Île-de-France',
      *                    ]
      */
-    public function geocodeCity(string $name, int $count = 1, string $language = 'fr'): ?array
+    public function geocodeCity(string $cityName, int $count = 1, string $language = 'fr'): ?array
     {
-        if ('' === trim($name)) {
+        if ('' === trim($cityName)) {
             return null;
         }
 
         try {
             $response = $this->http->request('GET', self::GEO_BASE, [
                 'query' => [
-                    'name' => $name,
+                    'name' => $cityName,
                     'count' => $count,
                     'language' => $language,
                     'format' => 'json',
@@ -46,41 +46,30 @@ final class WeatherService
                 'timeout' => 8,
             ]);
 
-            $data = $response->toArray(false);
+            $payload = $response->toArray(false);
         } catch (TransportExceptionInterface $e) {
-            // Network/timeout error — return null so controller can decide what to display
             return null;
         } catch (\Throwable $e) {
             return null;
         }
 
-        if (!isset($data['results'][0])) {
+        if (!isset($payload['results'][0])) {
             return null;
         }
 
-        $r = $data['results'][0];
+        $firstResult = $payload['results'][0];
 
         return [
-            'name' => (string) ($r['name'] ?? $name),
-            'latitude' => isset($r['latitude']) ? (float) $r['latitude'] : null,
-            'longitude' => isset($r['longitude']) ? (float) $r['longitude'] : null,
-            'country' => (string) ($r['country'] ?? ''),
-            'admin1' => (string) ($r['admin1'] ?? ''),
+            'name' => (string) ($firstResult['name'] ?? $cityName),
+            'latitude' => isset($firstResult['latitude']) ? (float) $firstResult['latitude'] : null,
+            'longitude' => isset($firstResult['longitude']) ? (float) $firstResult['longitude'] : null,
+            'country' => (string) ($firstResult['country'] ?? ''),
+            'admin1' => (string) ($firstResult['admin1'] ?? ''),
         ];
     }
 
     /**
      * Fetch current and hourly forecast for given coordinates.
-     *
-     * @return array|null Example:
-     *                    [
-     *                    'location' => ['latitude'=>.., 'longitude'=>..],
-     *                    'current'  => ['temperature'=>22.1, 'windspeed'=>14.3, 'winddirection'=>240, 'time'=>'2025-09-18T14:00'],
-     *                    'hourly'   => [
-     *                    ['time'=>'2025-09-18T14:00', 'temperature'=>22.1, 'wind'=>14.3, 'precip'=>0.0],
-     *                    ...
-     *                    ]
-     *                    ]
      */
     public function getForecastByCoords(float $latitude, float $longitude, string $timezone = 'auto', int $hours = 12): ?array
     {
@@ -100,74 +89,73 @@ final class WeatherService
                 'timeout' => 8,
             ]);
 
-            $data = $response->toArray(false);
+            $payload = $response->toArray(false);
         } catch (TransportExceptionInterface $e) {
             return null;
         } catch (\Throwable $e) {
             return null;
         }
 
-        // Basic shape checks
-        if (!isset($data['hourly']['time'], $data['hourly']['temperature_2m'])) {
+        if (!isset($payload['hourly']['time'], $payload['hourly']['temperature_2m'])) {
             return null;
         }
 
-        // Build a compact hourly array
-        $times = $data['hourly']['time'];
-        $temps = $data['hourly']['temperature_2m'] ?? [];
-        $winds = $data['hourly']['wind_speed_10m'] ?? [];
-        $precips = $data['hourly']['precipitation'] ?? [];
+        // Extract hourly arrays
+        $times = $payload['hourly']['time'];
+        $temperatures = $payload['hourly']['temperature_2m'] ?? [];
+        $windspeeds = $payload['hourly']['wind_speed_10m'] ?? [];
+        $precipitations = $payload['hourly']['precipitation'] ?? [];
 
-        $hourly = [];
-        $len = min($hours, count($times));
-        for ($i = 0; $i < $len; ++$i) {
-            $hourly[] = [
+        $hourlyForecasts = [];
+        $limit = min($hours, count($times));
+
+        for ($i = 0; $i < $limit; ++$i) {
+            $hourlyForecasts[] = [
                 'time' => (string) ($times[$i] ?? ''),
-                'temperature' => isset($temps[$i]) ? (float) $temps[$i] : null,      // °C
-                'wind' => isset($winds[$i]) ? (float) $winds[$i] : null,      // km/h
-                'precip' => isset($precips[$i]) ? (float) $precips[$i] : null,  // mm
+                'temperature' => isset($temperatures[$i]) ? (float) $temperatures[$i] : null,
+                'wind' => isset($windspeeds[$i]) ? (float) $windspeeds[$i] : null,
+                'precip' => isset($precipitations[$i]) ? (float) $precipitations[$i] : null,
             ];
         }
 
-        $current = $data['current_weather'] ?? null;
+        $currentWeather = $payload['current_weather'] ?? null;
 
         return [
             'location' => [
                 'latitude' => $latitude,
                 'longitude' => $longitude,
             ],
-            'current' => $current ? [
-                'temperature' => isset($current['temperature']) ? (float) $current['temperature'] : null,
-                'windspeed' => isset($current['windspeed']) ? (float) $current['windspeed'] : null,
-                'winddirection' => isset($current['winddirection']) ? (int) $current['winddirection'] : null,
-                'time' => (string) ($current['time'] ?? ''),
-                'is_day' => isset($current['is_day']) ? (int) $current['is_day'] : null,
-                'weathercode' => isset($current['weathercode']) ? (int) $current['weathercode'] : null,
+            'current' => $currentWeather ? [
+                'temperature' => isset($currentWeather['temperature']) ? (float) $currentWeather['temperature'] : null,
+                'windspeed' => isset($currentWeather['windspeed']) ? (float) $currentWeather['windspeed'] : null,
+                'winddirection' => isset($currentWeather['winddirection']) ? (int) $currentWeather['winddirection'] : null,
+                'time' => (string) ($currentWeather['time'] ?? ''),
+                'is_day' => isset($currentWeather['is_day']) ? (int) $currentWeather['is_day'] : null,
+                'weathercode' => isset($currentWeather['weathercode']) ? (int) $currentWeather['weathercode'] : null,
             ] : null,
-            'hourly' => $hourly,
+            'hourly' => $hourlyForecasts,
         ];
     }
 
     /**
      * Convenience method: geocode a city then fetch forecast for it.
-     * Returns null if any step fails.
      */
     public function getForecastByCity(string $city, string $timezone = 'auto', int $hours = 12): ?array
     {
-        $geo = $this->geocodeCity($city);
-        if (!$geo || null === $geo['latitude'] || null === $geo['longitude']) {
+        $geoData = $this->geocodeCity($city);
+        if (!$geoData || null === $geoData['latitude'] || null === $geoData['longitude']) {
             return null;
         }
 
-        $forecast = $this->getForecastByCoords($geo['latitude'], $geo['longitude'], $timezone, $hours);
+        $forecast = $this->getForecastByCoords($geoData['latitude'], $geoData['longitude'], $timezone, $hours);
         if (!$forecast) {
             return null;
         }
 
         $forecast['place'] = [
-            'name' => $geo['name'],
-            'country' => $geo['country'],
-            'admin1' => $geo['admin1'],
+            'name' => $geoData['name'],
+            'country' => $geoData['country'],
+            'admin1' => $geoData['admin1'],
         ];
 
         return $forecast;
