@@ -1,17 +1,42 @@
+{# templates/base.html.twig #}
 <!DOCTYPE html>
-<html>
-    <head>
-        <meta charset="UTF-8">
-        <title>{% block title %}Welcome!{% endblock %}</title>
-        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23fff%22>sf</text></svg>">
-        {% block stylesheets %}
-        {% endblock %}
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ title is defined ? title : 'SkyCast' }}</title>
+  <meta name="description" content="SkyCast — Prévisions météo locales, simples et claires." />
 
-        {% block javascripts %}
-            {% block importmap %}{{ importmap('app') }}{% endblock %}
-        {% endblock %}
-    </head>
-    <body>
-        {% block body %}{% endblock %}
-    </body>
+  {# Favicon minimal #}
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='5' fill='black'/></svg>">
+
+  {# CSS séparé #}
+  <link rel="stylesheet" href="{{ asset('styles/app.css') }}">
+</head>
+<body>
+  {# Sprite SVG externalisé pour ne pas alourdir ce template #}
+  {% include 'components/_icons.svg.twig' %}
+
+  <header class="container header">
+    <div class="brand">
+      <span class="brand-dot" aria-hidden="true"></span>
+      <span>{{ app_name|default('SkyCast') }}</span>
+      <span class="badge">alpha</span>
+    </div>
+    <nav class="muted" aria-label="Navigation principale">
+      <a href="{{ path('home') }}">Accueil</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    {% block body %}{% endblock %}
+  </main>
+
+  <footer class="container footer">
+    <p>© {{ "now"|date('Y') }} {{ app_name|default('SkyCast') }}. Fait avec Symfony 6.4.</p>
+  </footer>
+
+  {# JS page Home #}
+  <script src="{{ asset('scripts/home.js') }}" defer></script>
+</body>
 </html>
