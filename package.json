@@ -15,7 +15,9 @@
   "lint-staged": {
     "*.{js,ts,css,scss,html,json,md,yml,yaml}": "prettier --write",
     "*.php": "vendor/bin/php-cs-fixer fix --using-cache=no --quiet",
-    "*.twig": "vendor/bin/twigcs --display=errors --severity error"
+    "*.twig": [
+      "composer exec -- twigcs --display=errors --severity error"
+    ]
   },
   "keywords": [],
   "author": "",
