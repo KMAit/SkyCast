@@ -1,3 +1,250 @@
+/* ----------------------------
+   SkyCast - styles de base
+   ---------------------------- */
+
+:root {
+  --bg: #0b1220; /* Fond principal */
+  --panel: #121a2b; /* Fond des cartes */
+  --muted: #a3b1c6; /* Texte secondaire */
+  --text: #e7eefc; /* Texte principal */
+  --accent: #6fb1ff; /* Accent interactif */
+  --accent-2: #ffd166; /* Accent chaud */
+  --ring: rgba(111, 177, 255, 0.45);
+  --divider: rgba(255, 255, 255, 0.08);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
 body {
-    background-color: skyblue;
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font:
+    16px/1.5 system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    Ubuntu,
+    Cantarell,
+    Noto Sans,
+    Helvetica,
+    Arial;
+}
+
+/* -------- Layout -------- */
+
+.container {
+  max-width: 1100px;
+  margin-inline: auto;
+  padding: 24px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--divider);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.brand-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--accent-2);
+  display: inline-block;
+}
+
+.badge {
+  font-size: 12px;
+  color: var(--muted);
+  margin-left: 6px;
+}
+
+main {
+  padding-block: 24px;
+}
+
+.footer {
+  padding: 24px 0;
+  color: var(--muted);
+  border-top: 1px solid var(--divider);
+  margin-top: 24px;
+}
+
+/* -------- Cards -------- */
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--divider);
+  border-radius: 16px;
+  padding: 18px;
+}
+
+/* -------- Grid -------- */
+
+.grid {
+  display: grid;
+  gap: 18px;
+}
+
+.grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .grid-2,
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* -------- Inputs -------- */
+
+.input {
+  appearance: none;
+  width: 100%;
+  padding: 12px 14px 12px 40px;
+  border-radius: 12px;
+  border: 1px solid var(--divider);
+  background: #0e1628;
+  color: var(--text);
+}
+
+.input:focus {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--ring);
+  border-color: var(--accent);
+}
+
+.input-wrap {
+  position: relative;
+}
+
+.input-wrap .icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  opacity: 0.8;
+}
+
+/* -------- Buttons -------- */
+
+.btn {
+  background: var(--accent);
+  color: #061120;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn:hover {
+  filter: brightness(1.05);
+}
+
+.btn-secondary {
+  background: #1b2743;
+  color: var(--text);
+  border: 1px solid var(--divider);
+}
+
+.btn-text {
+  margin-left: 8px;
+}
+
+/* -------- Hero -------- */
+
+.hero {
+  display: grid;
+  gap: 20px;
+  align-items: center;
+  grid-template-columns: 1.2fr 0.8fr;
+}
+
+@media (max-width: 900px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+}
+
+.hero-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+}
+
+.visual-placeholder {
+  width: 180px;
+  height: 100px;
+  border-radius: 12px;
+  border: 1px dashed var(--divider);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+}
+
+/* -------- Typography -------- */
+
+.icon {
+  width: 20px;
+  height: 20px;
+  vertical-align: -3px;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.small {
+  font-size: 12px;
+}
+
+.h1 {
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  line-height: 1.2;
+}
+
+.h2 {
+  margin: 0 0 10px 0;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-gap {
+  margin-top: 20px;
+}
+
+.geo-message.success {
+  color: #4caf50;
+}
+.geo-message.error {
+  color: #ff6b6b;
 }
