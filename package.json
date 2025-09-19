@@ -1,11 +1,10 @@
 {
-  "name": "url-short-sf",
+  "name": "skycast",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "twigcs": "vendor/bin/twigcs templates",
     "prepare": "husky",
-    "lint:twig": "composer exec -- twigcs templates",
+    "lint:twig": "vendor/bin/twigcs --display=errors --severity error templates",
     "lint:css": "stylelint \"assets/**/*.css\"",
     "lint:js": "eslint \"assets/**/*.js\"",
     "format": "prettier --write .",
@@ -15,10 +14,10 @@
   "lint-staged": {
     "*.{js,ts,css,scss,html,json,md,yml,yaml}": "prettier --write",
     "*.php": [
-      "vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.dist.php --using-cache=no --quiet --"
+      "vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.php --using-cache=no --quiet --"
     ],
     "*.twig": [
-      "composer exec -- twigcs --display=errors --severity error"
+      "vendor/bin/twigcs --display=errors --severity error"
     ]
   },
   "keywords": [],
