@@ -13,6 +13,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  * Responsibilities:
  *  - Geocode a city name to coordinates
  *  - Fetch current + hourly forecast for given coordinates
+ *  - Fetch daily forecast (min/max temps, precipitation, weather code)
  *  - Convenience: fetch forecast for a city (geocode + forecast)
  *
  * Note: no reverse geocoding on purpose (not provided as a stable public endpoint).
@@ -83,7 +84,7 @@ final class WeatherService
     }
 
     /**
-     * Fetch current conditions and a short hourly forecast for given coordinates.
+     * Fetch current conditions, an hourly slice, and a 7-day daily forecast for given coordinates.
      *
      * @param float  $latitude  Decimal degrees
      * @param float  $longitude Decimal degrees
@@ -95,6 +96,7 @@ final class WeatherService
      *                    - location: [latitude, longitude]
      *                    - current:  current weather data or null
      *                    - hourly:   list of rows {time, temperature, wind, precip}
+     *                    - daily:    list of rows {date, tmin, tmax, precip_mm, weathercode}
      */
     public function getForecastByCoords(
         float $latitude,
@@ -109,7 +111,11 @@ final class WeatherService
                     'longitude' => $longitude,
                     'timezone' => $timezone,
                     'current_weather' => 'true',
+                    // Hourly variables
                     'hourly' => 'temperature_2m,precipitation,wind_speed_10m',
+                    // Daily variables
+                    'daily' => 'temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode',
+                    'forecast_days' => 7,
                 ],
                 'timeout' => 8,
             ]);
@@ -119,6 +125,7 @@ final class WeatherService
             return null;
         }
 
+        // --- Hourly mapping ---
         if (!isset($payload['hourly']['time'], $payload['hourly']['temperature_2m'])) {
             return null;
         }
@@ -140,22 +147,46 @@ final class WeatherService
             ];
         }
 
+        // --- Current mapping ---
         $currentWeather = $payload['current_weather'] ?? null;
+        $current = $currentWeather ? [
+            'temperature' => isset($currentWeather['temperature']) ? (float) $currentWeather['temperature'] : null,
+            'windspeed' => isset($currentWeather['windspeed']) ? (float) $currentWeather['windspeed'] : null,
+            'winddirection' => isset($currentWeather['winddirection']) ? (int) $currentWeather['winddirection'] : null,
+            'time' => (string) ($currentWeather['time'] ?? ''),
+            'is_day' => isset($currentWeather['is_day']) ? (int) $currentWeather['is_day'] : null,
+            'weathercode' => isset($currentWeather['weathercode']) ? (int) $currentWeather['weathercode'] : null,
+        ] : null;
+
+        // --- Daily mapping (7 jours) ---
+        $daily = [];
+        if (isset($payload['daily']['time'])) {
+            $dDates = $payload['daily']['time'] ?? [];
+            $tmax = $payload['daily']['temperature_2m_max'] ?? [];
+            $tmin = $payload['daily']['temperature_2m_min'] ?? [];
+            $precSum = $payload['daily']['precipitation_sum'] ?? [];
+            $wcode = $payload['daily']['weathercode'] ?? [];
+
+            $dCount = count($dDates);
+            for ($i = 0; $i < $dCount; ++$i) {
+                $daily[] = [
+                    'date' => (string) ($dDates[$i] ?? ''),                        // e.g. "2025-09-19"
+                    'tmin' => isset($tmin[$i]) ? (float) $tmin[$i] : null,        // °C
+                    'tmax' => isset($tmax[$i]) ? (float) $tmax[$i] : null,        // °C
+                    'precip_mm' => isset($precSum[$i]) ? (float) $precSum[$i] : null,  // mm
+                    'weathercode' => isset($wcode[$i]) ? (int) $wcode[$i] : null,
+                ];
+            }
+        }
 
         return [
             'location' => [
                 'latitude' => $latitude,
                 'longitude' => $longitude,
             ],
-            'current' => $currentWeather ? [
-                'temperature' => isset($currentWeather['temperature']) ? (float) $currentWeather['temperature'] : null,
-                'windspeed' => isset($currentWeather['windspeed']) ? (float) $currentWeather['windspeed'] : null,
-                'winddirection' => isset($currentWeather['winddirection']) ? (int) $currentWeather['winddirection'] : null,
-                'time' => (string) ($currentWeather['time'] ?? ''),
-                'is_day' => isset($currentWeather['is_day']) ? (int) $currentWeather['is_day'] : null,
-                'weathercode' => isset($currentWeather['weathercode']) ? (int) $currentWeather['weathercode'] : null,
-            ] : null,
+            'current' => $current,
             'hourly' => $hourlyForecasts,
+            'daily' => $daily,
         ];
     }
 
