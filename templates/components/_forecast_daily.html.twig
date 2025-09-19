@@ -1,17 +1,12 @@
 {# Daily forecast component
-   Usage examples:
+  Usage examples:
 
-   {# Minimal usage with placeholder #}
-   {# {% include 'components/_forecast_daily.html.twig' %} #}
-
-   {# With data:
-      {% include 'components/_forecast_daily.html.twig' with {
-        days: [
-          { date: '2025-09-19', tmin: 12.3, tmax: 22.1, precip_mm: 0.0, weathercode: 3 },
-          { date: '2025-09-20', tmin: 11.0, tmax: 20.4, precip_mm: 1.2, weathercode: 61 },
-        ]
-      } %}
-   #}
+  {% include 'components/_forecast_daily.html.twig' with {
+    days: [
+      { date: '2025-09-19', tmin: 12.3, tmax: 22.1, precip_mm: 0.0, weathercode: 3 },
+      { date: '2025-09-20', tmin: 11.0, tmax: 20.4, precip_mm: 1.2, weathercode: 61 }
+    ]
+  } %}
 #}
 
 <section class="card section-gap">
@@ -25,8 +20,7 @@
   {% else %}
     <div class="grid grid-3" role="list" aria-label="Prévision journalière">
       {% for d in days %}
-        {# Compute a readable day label (e.g., "ven 19/09") #}
-        {% set day_label = (d.date ?? '') ? (d.date|date('D d/m')) : '—' %}
+        {% set day_label = (d.date ?? '') ? d.date|format_date(locale='fr', pattern='EEE dd/MM') : '—' %}
 
         <article class="card" role="listitem" aria-label="Jour {{ day_label }}">
           <div class="small muted">{{ day_label }}</div>
@@ -38,7 +32,7 @@
             </div>
             <div style="text-align:right">
               <div><strong>Pluie</strong> : {{ d.precip_mm is defined and d.precip_mm is not null ? (d.precip_mm|number_format(1, '.', '')) ~ ' mm' : '—' }}</div>
-              {# Placeholder for a future icon mapped from weathercode (added in a later step) #}
+              {# Placeholder for a future weather icon from weathercode #}
               <div class="small muted">Code: {{ d.weathercode is defined and d.weathercode is not null ? d.weathercode : '—' }}</div>
             </div>
           </div>
