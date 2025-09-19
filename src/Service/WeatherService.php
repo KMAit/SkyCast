@@ -158,7 +158,7 @@ final class WeatherService
             'weathercode' => isset($currentWeather['weathercode']) ? (int) $currentWeather['weathercode'] : null,
         ] : null;
 
-        // --- Daily mapping (7 jours) ---
+        // --- Daily mapping (7 days) ---
         $daily = [];
         if (isset($payload['daily']['time'])) {
             $dDates = $payload['daily']['time'] ?? [];
