@@ -27,9 +27,9 @@ final class HomeController extends AbstractController
     }
 
     /**
-     * Render the home page with optional forecast data.
+     * Render the home page with optional forecast data (current, hourly, daily).
      *
-     * @param Request $request HTTP request (reads 'city' or 'lat'/'lon' query params)
+     * @param Request $request HTTP request (supports 'city' or 'lat'/'lon' query params)
      *
      * @return Response Full HTML response
      */
@@ -62,19 +62,18 @@ final class HomeController extends AbstractController
             }
         }
 
-        // Default placeholders for cards
+        // Defaults for cards and lists
         $cards = [
             'temperature' => '— en attente de résultats —',
             'wind' => '— en attente de résultats —',
             'precipitation' => '— en attente de résultats —',
         ];
-
-        // Hourly forecast rows for the partial
         $hours = [];
+        $days = [];
 
         if (null !== $forecast) {
+            // Current → KPI cards
             $current = $forecast['current'] ?? null;
-
             if (null !== $current) {
                 $currentTemp = $current['temperature'] ?? null; // °C
                 $currentWind = $current['windspeed'] ?? null;   // km/h
@@ -89,6 +88,7 @@ final class HomeController extends AbstractController
                 $cards['precipitation'] = null !== $firstHourPrecip ? sprintf('<strong>%.1f mm</strong>', $firstHourPrecip) : '—';
             }
 
+            // Hourly slice → partial
             foreach ($forecast['hourly'] as $row) {
                 $isoTime = (string) ($row['time'] ?? '');
                 $hhmm = '' !== $isoTime ? substr($isoTime, 11, 5) : '—:—';
@@ -100,6 +100,19 @@ final class HomeController extends AbstractController
                     'precip' => isset($row['precip']) ? sprintf('%.1f mm', (float) $row['precip']) : '—',
                 ];
             }
+
+            // Daily (7 days) → partial
+            if (!empty($forecast['daily'])) {
+                foreach ($forecast['daily'] as $d) {
+                    $days[] = [
+                        'date' => (string) ($d['date'] ?? ''),               // ex: "2025-09-19"
+                        'tmin' => isset($d['tmin']) ? (float) $d['tmin'] : null,
+                        'tmax' => isset($d['tmax']) ? (float) $d['tmax'] : null,
+                        'precip_mm' => isset($d['precip_mm']) ? (float) $d['precip_mm'] : null,
+                        'weathercode' => isset($d['weathercode']) ? (int) $d['weathercode'] : null,
+                    ];
+                }
+            }
         }
 
         return $this->render('home/index.html.twig', [
@@ -107,6 +120,7 @@ final class HomeController extends AbstractController
             'app_name' => 'SkyCast',
             'cards' => $cards,
             'hours' => $hours,
+            'days' => $days,
             'city' => $city,
             'coords' => $coords,
             'place' => $place,
