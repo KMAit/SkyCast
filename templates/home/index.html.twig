@@ -80,4 +80,9 @@
   {% include 'components/_forecast_hourly.html.twig' with {
     hours: hours
   } %}
+
+  {# Daily forecast partial #}
+  {% include 'components/_forecast_daily.html.twig' with {
+    days: days
+    } %}
 {% endblock %}
