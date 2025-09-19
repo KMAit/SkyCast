@@ -31,9 +31,17 @@
               <div><strong>Min</strong> : {{ d.tmin is defined and d.tmin is not null ? (d.tmin|number_format(1, '.', '')) ~ '°C' : '—' }}</div>
             </div>
             <div style="text-align:right">
-              <div><strong>Pluie</strong> : {{ d.precip_mm is defined and d.precip_mm is not null ? (d.precip_mm|number_format(1, '.', '')) ~ ' mm' : '—' }}</div>
-              {# Placeholder for a future weather icon from weathercode #}
-              <div class="small muted">Code: {{ d.weathercode is defined and d.weathercode is not null ? d.weathercode : '—' }}</div>
+              <div style="text-align:right">
+                <div><strong>Pluie</strong> : {{ d.precip_mm is defined and d.precip_mm is not null ? (d.precip_mm|number_format(1, '.', '')) ~ ' mm' : '—' }}</div>
+
+                {# Weather icon + label #}
+                <div style="margin-top:6px; display:flex; align-items:center; gap:6px; justify-content:flex-end">
+                  <svg class="icon" style="width:22px;height:22px" aria-hidden="true">
+                    <use href="#icon-{{ d.icon|default('na') }}"/>
+                  </svg>
+                  <span class="small muted">{{ d.label|default('—') }}</span>
+                </div>
+              </div>
             </div>
           </div>
         </article>

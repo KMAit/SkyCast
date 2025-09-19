@@ -55,10 +55,10 @@ final class WeatherService
         try {
             $response = $this->http->request('GET', self::GEO_BASE, [
                 'query' => [
-                    'name' => $cityName,
-                    'count' => $count,
+                    'name'     => $cityName,
+                    'count'    => $count,
                     'language' => $language,
-                    'format' => 'json',
+                    'format'   => 'json',
                 ],
                 'timeout' => 8,
             ]);
@@ -75,11 +75,11 @@ final class WeatherService
         $firstResult = $payload['results'][0];
 
         return [
-            'name' => (string) ($firstResult['name'] ?? $cityName),
-            'latitude' => isset($firstResult['latitude']) ? (float) $firstResult['latitude'] : null,
+            'name'      => (string) ($firstResult['name'] ?? $cityName),
+            'latitude'  => isset($firstResult['latitude']) ? (float) $firstResult['latitude'] : null,
             'longitude' => isset($firstResult['longitude']) ? (float) $firstResult['longitude'] : null,
-            'country' => (string) ($firstResult['country'] ?? ''),
-            'admin1' => (string) ($firstResult['admin1'] ?? ''),
+            'country'   => (string) ($firstResult['country'] ?? ''),
+            'admin1'    => (string) ($firstResult['admin1'] ?? ''),
         ];
     }
 
@@ -107,14 +107,14 @@ final class WeatherService
         try {
             $response = $this->http->request('GET', self::METEO_BASE, [
                 'query' => [
-                    'latitude' => $latitude,
-                    'longitude' => $longitude,
-                    'timezone' => $timezone,
+                    'latitude'        => $latitude,
+                    'longitude'       => $longitude,
+                    'timezone'        => $timezone,
                     'current_weather' => 'true',
                     // Hourly variables
                     'hourly' => 'temperature_2m,precipitation,wind_speed_10m',
                     // Daily variables
-                    'daily' => 'temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode',
+                    'daily'         => 'temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode',
                     'forecast_days' => 7,
                 ],
                 'timeout' => 8,
@@ -130,63 +130,67 @@ final class WeatherService
             return null;
         }
 
-        $times = $payload['hourly']['time'];
-        $temperatures = $payload['hourly']['temperature_2m'] ?? [];
-        $windspeeds = $payload['hourly']['wind_speed_10m'] ?? [];
-        $precipitations = $payload['hourly']['precipitation'] ?? [];
+        $times          = $payload['hourly']['time'];
+        $temperatures   = $payload['hourly']['temperature_2m'] ?? [];
+        $windspeeds     = $payload['hourly']['wind_speed_10m'] ?? [];
+        $precipitations = $payload['hourly']['precipitation']  ?? [];
 
         $hourlyForecasts = [];
-        $limit = min($hours, count($times));
+        $limit           = min($hours, count($times));
 
         for ($i = 0; $i < $limit; ++$i) {
             $hourlyForecasts[] = [
-                'time' => (string) ($times[$i] ?? ''),
+                'time'        => (string) ($times[$i] ?? ''),
                 'temperature' => isset($temperatures[$i]) ? (float) $temperatures[$i] : null,
-                'wind' => isset($windspeeds[$i]) ? (float) $windspeeds[$i] : null,
-                'precip' => isset($precipitations[$i]) ? (float) $precipitations[$i] : null,
+                'wind'        => isset($windspeeds[$i]) ? (float) $windspeeds[$i] : null,
+                'precip'      => isset($precipitations[$i]) ? (float) $precipitations[$i] : null,
             ];
         }
 
         // --- Current mapping ---
         $currentWeather = $payload['current_weather'] ?? null;
-        $current = $currentWeather ? [
-            'temperature' => isset($currentWeather['temperature']) ? (float) $currentWeather['temperature'] : null,
-            'windspeed' => isset($currentWeather['windspeed']) ? (float) $currentWeather['windspeed'] : null,
+        $current        = $currentWeather ? [
+            'temperature'   => isset($currentWeather['temperature']) ? (float) $currentWeather['temperature'] : null,
+            'windspeed'     => isset($currentWeather['windspeed']) ? (float) $currentWeather['windspeed'] : null,
             'winddirection' => isset($currentWeather['winddirection']) ? (int) $currentWeather['winddirection'] : null,
-            'time' => (string) ($currentWeather['time'] ?? ''),
-            'is_day' => isset($currentWeather['is_day']) ? (int) $currentWeather['is_day'] : null,
-            'weathercode' => isset($currentWeather['weathercode']) ? (int) $currentWeather['weathercode'] : null,
+            'time'          => (string) ($currentWeather['time'] ?? ''),
+            'is_day'        => isset($currentWeather['is_day']) ? (int) $currentWeather['is_day'] : null,
+            'weathercode'   => isset($currentWeather['weathercode']) ? (int) $currentWeather['weathercode'] : null,
         ] : null;
 
         // --- Daily mapping (7 days) ---
         $daily = [];
         if (isset($payload['daily']['time'])) {
-            $dDates = $payload['daily']['time'] ?? [];
-            $tmax = $payload['daily']['temperature_2m_max'] ?? [];
-            $tmin = $payload['daily']['temperature_2m_min'] ?? [];
-            $precSum = $payload['daily']['precipitation_sum'] ?? [];
-            $wcode = $payload['daily']['weathercode'] ?? [];
+            $dDates  = $payload['daily']['time']               ?? [];
+            $tmax    = $payload['daily']['temperature_2m_max'] ?? [];
+            $tmin    = $payload['daily']['temperature_2m_min'] ?? [];
+            $precSum = $payload['daily']['precipitation_sum']  ?? [];
+            $wcode   = $payload['daily']['weathercode']        ?? [];
+            $code    = isset($wcode[$i]) ? (int) $wcode[$i] : null;
+            $mapped  = $this->mapWeatherCode($code);
 
             $dCount = count($dDates);
             for ($i = 0; $i < $dCount; ++$i) {
                 $daily[] = [
-                    'date' => (string) ($dDates[$i] ?? ''),                        // e.g. "2025-09-19"
-                    'tmin' => isset($tmin[$i]) ? (float) $tmin[$i] : null,        // °C
-                    'tmax' => isset($tmax[$i]) ? (float) $tmax[$i] : null,        // °C
-                    'precip_mm' => isset($precSum[$i]) ? (float) $precSum[$i] : null,  // mm
-                    'weathercode' => isset($wcode[$i]) ? (int) $wcode[$i] : null,
+                    'date'        => (string) ($dDates[$i] ?? ''),                        // e.g. "2025-09-19"
+                    'tmin'        => isset($tmin[$i]) ? (float) $tmin[$i] : null,        // °C
+                    'tmax'        => isset($tmax[$i]) ? (float) $tmax[$i] : null,        // °C
+                    'precip_mm'   => isset($precSum[$i]) ? (float) $precSum[$i] : null,  // mm
+                    'weathercode' => $code,
+                    'icon'        => $mapped['icon'],
+                    'label'       => $mapped['label'],
                 ];
             }
         }
 
         return [
             'location' => [
-                'latitude' => $latitude,
+                'latitude'  => $latitude,
                 'longitude' => $longitude,
             ],
             'current' => $current,
-            'hourly' => $hourlyForecasts,
-            'daily' => $daily,
+            'hourly'  => $hourlyForecasts,
+            'daily'   => $daily,
         ];
     }
 
@@ -213,11 +217,43 @@ final class WeatherService
         }
 
         $forecast['place'] = [
-            'name' => $geoData['name'],
+            'name'    => $geoData['name'],
             'country' => $geoData['country'],
-            'admin1' => $geoData['admin1'],
+            'admin1'  => $geoData['admin1'],
         ];
 
         return $forecast;
+    }
+
+    /**
+     * Map Open-Meteo weather codes to an icon slug and a short human label.
+     * Icon slugs must exist in the SVG sprite (e.g. icon-sun, icon-cloud, …).
+     *
+     * @param int|null $code Open-Meteo weathercode
+     *
+     * @return array{icon:string,label:string}
+     */
+    private function mapWeatherCode(?int $code): array
+    {
+        if (null === $code) {
+            return ['icon' => 'na', 'label' => 'Indisponible'];
+        }
+
+        // Reference: https://open-meteo.com/en/docs (Weathercode)
+        return match (true) {
+            0  === $code => ['icon' => 'sun',       'label' => 'Ciel clair'],
+            1  === $code,
+            2  === $code,
+            3  === $code => ['icon' => 'cloud-sun', 'label' => 'Partiellement nuageux'],
+            45 === $code,
+            48 === $code               => ['icon' => 'fog',       'label' => 'Brouillard'],
+            $code >= 51 && $code <= 57 => ['icon' => 'drizzle',   'label' => 'Bruine'],
+            $code >= 61 && $code <= 67 => ['icon' => 'rain',      'label' => 'Pluie'],
+            $code >= 71 && $code <= 77 => ['icon' => 'snow',      'label' => 'Neige'],
+            $code >= 80 && $code <= 82 => ['icon' => 'rain',      'label' => 'Averses'],
+            $code >= 85 && $code <= 86 => ['icon' => 'snow',      'label' => 'Averses de neige'],
+            $code >= 95 && $code <= 99 => ['icon' => 'thunder',   'label' => 'Orage'],
+            default                    => ['icon' => 'na',        'label' => 'Indéterminé'],
+        };
     }
 }

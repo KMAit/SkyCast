@@ -28,8 +28,8 @@ final class WeatherController extends AbstractController
     public function fetch(Request $request): JsonResponse
     {
         $city = $request->query->get('city');
-        $lat = $request->query->get('lat');
-        $lon = $request->query->get('lon');
+        $lat  = $request->query->get('lat');
+        $lon  = $request->query->get('lon');
 
         $result = null;
 

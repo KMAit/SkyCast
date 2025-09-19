@@ -37,20 +37,20 @@ final class HomeController extends AbstractController
     public function index(Request $request): Response
     {
         $city = (string) $request->query->get('city', '');
-        $lat = $request->query->get('lat');
-        $lon = $request->query->get('lon');
+        $lat  = $request->query->get('lat');
+        $lon  = $request->query->get('lon');
 
         $forecast = null;
-        $error = null;
-        $place = null;
-        $coords = null;
+        $error    = null;
+        $place    = null;
+        $coords   = null;
 
         if ('' !== $city) {
             $forecast = $this->weatherService->getForecastByCity($city, timezone: 'Europe/Paris', hours: 12);
             if (null === $forecast) {
                 $error = sprintf('Impossible de trouver les prévisions pour « %s ».', $city);
             } else {
-                $place = $forecast['place'] ?? null;
+                $place  = $forecast['place']    ?? null;
                 $coords = $forecast['location'] ?? null;
             }
         } elseif (null !== $lat && null !== $lon) {
@@ -64,39 +64,39 @@ final class HomeController extends AbstractController
 
         // Defaults for cards and lists
         $cards = [
-            'temperature' => '— en attente de résultats —',
-            'wind' => '— en attente de résultats —',
+            'temperature'   => '— en attente de résultats —',
+            'wind'          => '— en attente de résultats —',
             'precipitation' => '— en attente de résultats —',
         ];
         $hours = [];
-        $days = [];
+        $days  = [];
 
         if (null !== $forecast) {
             // Current → KPI cards
             $current = $forecast['current'] ?? null;
             if (null !== $current) {
                 $currentTemp = $current['temperature'] ?? null; // °C
-                $currentWind = $current['windspeed'] ?? null;   // km/h
+                $currentWind = $current['windspeed']   ?? null;   // km/h
 
                 $firstHourPrecip = null;
                 if (!empty($forecast['hourly']) && isset($forecast['hourly'][0]['precip'])) {
                     $firstHourPrecip = (float) $forecast['hourly'][0]['precip']; // mm
                 }
 
-                $cards['temperature'] = null !== $currentTemp ? sprintf('<strong>%.1f°C</strong>', (float) $currentTemp) : '—';
-                $cards['wind'] = null !== $currentWind ? sprintf('<strong>%.0f km/h</strong>', (float) $currentWind) : '—';
+                $cards['temperature']   = null !== $currentTemp ? sprintf('<strong>%.1f°C</strong>', (float) $currentTemp) : '—';
+                $cards['wind']          = null !== $currentWind ? sprintf('<strong>%.0f km/h</strong>', (float) $currentWind) : '—';
                 $cards['precipitation'] = null !== $firstHourPrecip ? sprintf('<strong>%.1f mm</strong>', $firstHourPrecip) : '—';
             }
 
             // Hourly slice → partial
             foreach ($forecast['hourly'] as $row) {
                 $isoTime = (string) ($row['time'] ?? '');
-                $hhmm = '' !== $isoTime ? substr($isoTime, 11, 5) : '—:—';
+                $hhmm    = '' !== $isoTime ? substr($isoTime, 11, 5) : '—:—';
 
                 $hours[] = [
-                    'time' => $hhmm,
-                    'temp' => isset($row['temperature']) ? sprintf('%.1f°C', (float) $row['temperature']) : '—',
-                    'wind' => isset($row['wind']) ? sprintf('%.0f km/h', (float) $row['wind']) : '—',
+                    'time'   => $hhmm,
+                    'temp'   => isset($row['temperature']) ? sprintf('%.1f°C', (float) $row['temperature']) : '—',
+                    'wind'   => isset($row['wind']) ? sprintf('%.0f km/h', (float) $row['wind']) : '—',
                     'precip' => isset($row['precip']) ? sprintf('%.1f mm', (float) $row['precip']) : '—',
                 ];
             }
@@ -105,26 +105,28 @@ final class HomeController extends AbstractController
             if (!empty($forecast['daily'])) {
                 foreach ($forecast['daily'] as $d) {
                     $days[] = [
-                        'date' => (string) ($d['date'] ?? ''),               // ex: "2025-09-19"
-                        'tmin' => isset($d['tmin']) ? (float) $d['tmin'] : null,
-                        'tmax' => isset($d['tmax']) ? (float) $d['tmax'] : null,
-                        'precip_mm' => isset($d['precip_mm']) ? (float) $d['precip_mm'] : null,
+                        'date'        => (string) ($d['date'] ?? ''),               // ex: "2025-09-19"
+                        'tmin'        => isset($d['tmin']) ? (float) $d['tmin'] : null,
+                        'tmax'        => isset($d['tmax']) ? (float) $d['tmax'] : null,
+                        'precip_mm'   => isset($d['precip_mm']) ? (float) $d['precip_mm'] : null,
                         'weathercode' => isset($d['weathercode']) ? (int) $d['weathercode'] : null,
+                        'icon'        => (string) ($d['icon'] ?? 'na'),
+                        'label'       => (string) ($d['label'] ?? '—'),
                     ];
                 }
             }
         }
 
         return $this->render('home/index.html.twig', [
-            'title' => 'SkyCast - Votre météo simplifiée',
+            'title'    => 'SkyCast - Votre météo simplifiée',
             'app_name' => 'SkyCast',
-            'cards' => $cards,
-            'hours' => $hours,
-            'days' => $days,
-            'city' => $city,
-            'coords' => $coords,
-            'place' => $place,
-            'error' => $error,
+            'cards'    => $cards,
+            'hours'    => $hours,
+            'days'     => $days,
+            'city'     => $city,
+            'coords'   => $coords,
+            'place'    => $place,
+            'error'    => $error,
         ]);
     }
 }
