@@ -163,6 +163,12 @@ main {
   }
 }
 
+@media (max-width: 520px) {
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Inputs */
 .input {
   appearance: none;
