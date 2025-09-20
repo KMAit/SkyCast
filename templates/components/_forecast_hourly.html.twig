@@ -24,11 +24,28 @@
     <div class="grid grid-3" role="list" aria-label="Prévision horaire">
       {% for h in hours %}
         <article class="card" role="listitem" aria-label="Heure {{ h.time|default('—') }}">
-          <div class="small muted">{{ h.time|default('—:—') }}</div>
+          <div class="small muted">
+              {{ h.time is defined and h.time ? h.time|format_datetime(locale='fr', timezone='Europe/Paris', pattern="EEE HH:mm") : '—:—' }}
+          </div>
           <div style="margin-top:8px">
-            <div><strong>Temp.</strong> : {{ h.temp|default('—') }}</div>
-            <div><strong>Vent</strong> : {{ h.wind|default('—') }}</div>
-            <div><strong>Précip.</strong> : {{ h.precip|default('—') }}</div>
+            <div><strong>Temp.</strong> : {{ h.temp|default(h.temperature|default('—')) }}</div>
+            <div><strong>Vent</strong> : {{ h.wind is not null ? (h.wind ~ ' km/h') : '—' }}</div>
+            <div><strong>Précip.</strong> : {{ h.precip is not null ? (h.precip ~ ' mm') : '—' }}</div>
+
+            {# Icon + label row (show if either exists) #}
+            {% set has_icon = h.icon is defined and h.icon %}
+            {% set has_label = h.label is defined and h.label %}
+
+            {% if has_icon or has_label %}
+              <div style="display:flex; align-items:center; gap:6px;">
+                {% if has_icon %}
+                  <svg class="icon" aria-hidden="true"><use href="#icon-{{ h.icon }}"/></svg>
+                {% endif %}
+                {% if has_label %}
+                  <div class="small muted">{{ h.label }}</div>
+                {% endif %}
+              </div>
+            {% endif %}
           </div>
         </article>
       {% endfor %}

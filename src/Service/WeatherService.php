@@ -112,7 +112,7 @@ final class WeatherService
                     'timezone'        => $timezone,
                     'current_weather' => 'true',
                     // Hourly variables
-                    'hourly' => 'temperature_2m,precipitation,wind_speed_10m',
+                    'hourly' => 'temperature_2m,precipitation,wind_speed_10m,weathercode',
                     // Daily variables
                     'daily'         => 'temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode',
                     'forecast_days' => 7,
@@ -134,16 +134,23 @@ final class WeatherService
         $temperatures   = $payload['hourly']['temperature_2m'] ?? [];
         $windspeeds     = $payload['hourly']['wind_speed_10m'] ?? [];
         $precipitations = $payload['hourly']['precipitation']  ?? [];
+        $weathercodes   = $payload['hourly']['weathercode']    ?? [];
 
         $hourlyForecasts = [];
         $limit           = min($hours, count($times));
 
         for ($i = 0; $i < $limit; ++$i) {
+            $code   = isset($weathercodes[$i]) ? (int) $weathercodes[$i] : null;
+            $mapped = $this->mapWeatherCode($code);
+
             $hourlyForecasts[] = [
                 'time'        => (string) ($times[$i] ?? ''),
                 'temperature' => isset($temperatures[$i]) ? (float) $temperatures[$i] : null,
                 'wind'        => isset($windspeeds[$i]) ? (float) $windspeeds[$i] : null,
                 'precip'      => isset($precipitations[$i]) ? (float) $precipitations[$i] : null,
+                'weathercode' => $code,
+                'icon'        => $mapped['icon'],
+                'label'       => $mapped['label'],
             ];
         }
 
@@ -158,6 +165,11 @@ final class WeatherService
             'weathercode'   => isset($currentWeather['weathercode']) ? (int) $currentWeather['weathercode'] : null,
         ] : null;
 
+        if ($current) {
+            $mapped           = $this->mapWeatherCode($current['weathercode'] ?? null);
+            $current['icon']  = $mapped['icon'];
+            $current['label'] = $mapped['label'];
+        }
         // --- Daily mapping (7 days) ---
         $daily = [];
         if (isset($payload['daily']['time'])) {

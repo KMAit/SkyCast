@@ -1,6 +1,8 @@
 {% extends 'base.html.twig' %}
 
 {% block body %}
+
+  {# Hero section with search form #}
   <section class="hero">
     <div class="card">
       <h1 class="h1">Prévisions météo locales</h1>
@@ -57,32 +59,39 @@
     </div>
   </section>
 
-  <section class="grid grid-3 section-gap">
-    {% include 'components/_weather_card.html.twig' with {
-      icon: 'icon-thermo',
-      title: 'Température',
-      content: cards.temperature|raw
-    } %}
+  {# Current conditions — qualitative context (icon + label + timestamp) #}
+  {% if current is defined and current %}
+    <section class="card section-gap">
+      <h2 class="h2">
+        <svg class="icon" aria-hidden="true"><use href="#icon-{{ current.icon|default('na') }}"/></svg>
+        <span>Conditions actuelles — {{ current.label|default('—') }}</span>
+      </h2>
+      <p class="muted small">
+        Mise à jour :
+        {{ current.time|format_datetime(locale='fr', timezone='Europe/Paris', pattern="'le' dd/MM 'à' HH:mm") }}
+      </p>
+    </section>
+  {% endif %}
 
-    {% include 'components/_weather_card.html.twig' with {
-      icon: 'icon-wind',
-      title: 'Vent',
-      content: cards.wind|raw
-    } %}
 
-    {% include 'components/_weather_card.html.twig' with {
-      icon: 'icon-drop',
-      title: 'Précipitations',
-      content: cards.precipitation|raw
-    } %}
+  {# Current data — quantitative KPIs (complement to current conditions) #}
+  <section class="card section-gap">
+    <h2 class="h2">
+      <svg class="icon" aria-hidden="true"><use href="#icon-thermo"/></svg>
+      <span>Données actuelles</span>
+    </h2>
+
+    <div class="grid grid-3" style="margin-top:10px">
+      {% include 'components/_weather_card.html.twig' with {icon: 'icon-thermo', title: 'Température', content: cards.temperature|raw} %}
+      {% include 'components/_weather_card.html.twig' with {icon: 'icon-wind', title: 'Vent', content: cards.wind|raw} %}
+      {% include 'components/_weather_card.html.twig' with {icon: 'icon-drop', title: 'Précipitations', content: cards.precipitation|raw} %}
+    </div>
   </section>
 
-  {% include 'components/_forecast_hourly.html.twig' with {
-    hours: hours
-  } %}
+  {# Hourly forecast (with icons if provided) #}
+  {% include 'components/_forecast_hourly.html.twig' with {hours: hours} %}
 
   {# Daily forecast (7 days) #}
-  {% include 'components/_forecast_daily.html.twig' with {
-    days: days
-    } %}
+  {% include 'components/_forecast_daily.html.twig' with {days: days} %}
+
 {% endblock %}

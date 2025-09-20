@@ -120,13 +120,14 @@ final class HomeController extends AbstractController
         return $this->render('home/index.html.twig', [
             'title'    => 'SkyCast - Votre météo simplifiée',
             'app_name' => 'SkyCast',
-            'cards'    => $cards,
-            'hours'    => $hours,
-            'days'     => $days,
+            'cards'    => $cards              ?? [],
+            'hours'    => $forecast['hourly'] ?? [],
+            'days'     => $forecast['daily']  ?? [],
             'city'     => $city,
             'coords'   => $coords,
             'place'    => $place,
             'error'    => $error,
+            'current'  => $forecast['current'] ?? null,
         ]);
     }
 }
