@@ -1,16 +1,47 @@
 /* ----------------------------
-   SkyCast - styles de base
-   ---------------------------- */
+  SkyCast - Base styles
+  ---------------------------- */
 
+/* --- Themes (vertical gradients) --- */
 :root {
-  --bg: #0b1220; /* Fond principal */
-  --panel: #121a2b; /* Fond des cartes */
-  --muted: #a3b1c6; /* Texte secondaire */
-  --text: #e7eefc; /* Texte principal */
-  --accent: #6fb1ff; /* Accent interactif */
-  --accent-2: #ffd166; /* Accent chaud */
+  /* Default theme (Nature) — top to bottom gradient, deep blue  → green */
+  --bg: linear-gradient(to bottom, #185a9d 0%, #43cea2 100%);
+
+  /* Card background (solid dark panel for readability on gradients) */
+  --panel: rgba(0, 0, 0, 0.35);
+
+  /* Secondary text color (muted, less emphasis) */
+  --muted: #a3b1c6;
+
+  /* Primary text color (main content) */
+  --text: #ffffff;
+
+  /* Primary accent color (buttons, active states) */
+  --accent: #6fb1ff;
+
+  /* Secondary accent color (warm highlights, secondary actions) */
+  --accent-2: #ffd166;
+
+  /* Focus ring color (used for outlines/box-shadows on focus) */
   --ring: rgba(111, 177, 255, 0.45);
-  --divider: rgba(255, 255, 255, 0.08);
+
+  /* Divider color (subtle borders between sections/cards) */
+  --divider: rgba(255, 255, 255, 0.2);
+}
+
+/* Sky (light blue → cyan) */
+:root.theme-sky {
+  --bg: linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%);
+}
+
+/* Nature (explicit, same as default) */
+:root.theme-nature {
+  --bg: linear-gradient(to bottom, #185a9d 0%, #43cea2 100%);
+}
+
+/* Sunset (pink → light blue) */
+:root.theme-sunset {
+  --bg: linear-gradient(to bottom, #a1c4fd 0%, #ff9a9e 100%);
 }
 
 *,
@@ -25,7 +56,11 @@ body {
 
 body {
   margin: 0;
+  min-height: 100vh;
   background: var(--bg);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-size: cover;
   color: var(--text);
   font:
     16px/1.5 system-ui,
@@ -37,6 +72,24 @@ body {
     Noto Sans,
     Helvetica,
     Arial;
+}
+
+/* Toggle */
+.theme-toggle {
+  display: inline-flex;
+  gap: 8px;
+}
+.theme-toggle button {
+  background: #1b2743;
+  color: var(--text);
+  border: 1px solid var(--divider);
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.theme-toggle button.is-active {
+  outline: 2px solid var(--accent);
 }
 
 /* Layout */
@@ -77,9 +130,10 @@ main {
 }
 .footer {
   padding: 24px 0;
-  color: var(--muted);
+  color: #ffffff; /* blanc pur */
   border-top: 1px solid var(--divider);
   margin-top: 24px;
+  text-align: center; /* centré */
 }
 
 /* Cards */
