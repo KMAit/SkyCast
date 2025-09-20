@@ -165,12 +165,13 @@ final class WeatherService
             $tmax    = $payload['daily']['temperature_2m_max'] ?? [];
             $tmin    = $payload['daily']['temperature_2m_min'] ?? [];
             $precSum = $payload['daily']['precipitation_sum']  ?? [];
-            $wcode   = $payload['daily']['weathercode']        ?? [];
-            $code    = isset($wcode[$i]) ? (int) $wcode[$i] : null;
-            $mapped  = $this->mapWeatherCode($code);
+            $wcode   = $payload['daily']['weathercode']        ?? $payload['daily']['weather_code'] ?? [];
 
             $dCount = count($dDates);
             for ($i = 0; $i < $dCount; ++$i) {
+                $code   = isset($wcode[$i]) ? (int) $wcode[$i] : null;
+                $mapped = $this->mapWeatherCode($code);
+
                 $daily[] = [
                     'date'        => (string) ($dDates[$i] ?? ''),                        // e.g. "2025-09-19"
                     'tmin'        => isset($tmin[$i]) ? (float) $tmin[$i] : null,        // °C
