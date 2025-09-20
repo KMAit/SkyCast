@@ -25,6 +25,11 @@
         <nav class="muted" aria-label="Navigation principale">
             <a href="{{ path('home') }}">Accueil</a>
         </nav>
+        <div class="theme-toggle" role="group" aria-label="Theme switch">
+          <button type="button" data-theme="theme-sky" aria-pressed="false" title="Sky">Sky</button>
+          <button type="button" data-theme="theme-nature" aria-pressed="false" title="Nature">Nature</button>
+          <button type="button" data-theme="theme-sunset" aria-pressed="false" title="Sunset">Sunset</button>
+        </div>
     </header>
 
     <main class="container">
@@ -32,10 +37,11 @@
     </main>
 
     <footer class="container footer">
-        <p>© {{ "now"|date('Y') }} {{ app_name|default('SkyCast') }}. Fait avec Symfony 6.4.</p>
+        <p>&copy; {{ "now"|date('Y') }} {{ app_name|default('SkyCast') }}. Tous droits réservés.</p>
     </footer>
 
-    {# JS for the Home page #}
+    {# JS #}
     <script src="{{ asset('scripts/home.js') }}" defer></script>
+    <script src="{{ asset('scripts/theme.js') }}" defer></script>
 </body>
 </html>
