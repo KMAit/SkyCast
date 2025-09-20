@@ -25,8 +25,9 @@
       {% for h in hours %}
         <article class="card" role="listitem" aria-label="Heure {{ h.time|default('—') }}">
           <div class="small muted">
-              {{ h.time is defined and h.time ? h.time|format_datetime(locale='fr', timezone='Europe/Paris', pattern="EEE HH:mm") : '—:—' }}
+            {{ h.time is defined and h.time ? h.time|format_datetime(locale='fr', timezone='Europe/Paris', pattern="EEE HH:mm") : '—:—' }}
           </div>
+
           <div style="margin-top:8px">
             <div><strong>Temp.</strong> : {{ h.temp|default(h.temperature|default('—')) }}</div>
             <div><strong>Vent</strong> : {{ h.wind is not null ? (h.wind ~ ' km/h') : '—' }}</div>
