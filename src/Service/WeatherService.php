@@ -136,18 +136,37 @@ final class WeatherService
         $precipitations = $payload['hourly']['precipitation']  ?? [];
         $weathercodes   = $payload['hourly']['weathercode']    ?? [];
 
+        // ---- rolling window: start at current time (or next available)
+        $startIndex = 0;
+        if (!empty($payload['current_weather']['time'])) {
+            $currentIso = (string) $payload['current_weather']['time']; // ex: "2025-09-21T22:00"
+            $found      = array_search($currentIso, $times, true);
+            if ($found === false) {
+                foreach ($times as $i => $iso) {
+                    if ($iso > $currentIso) {
+                        $found = $i;
+                        break;
+                    }
+                }
+            }
+            if ($found !== false && is_int($found)) {
+                $startIndex = max(0, $found);
+            }
+        }
+
         $hourlyForecasts = [];
-        $limit           = min($hours, count($times));
+        $limit           = min($hours, max(0, count($times) - $startIndex));
 
         for ($i = 0; $i < $limit; ++$i) {
-            $code   = isset($weathercodes[$i]) ? (int) $weathercodes[$i] : null;
+            $idx    = $startIndex + $i;
+            $code   = isset($weathercodes[$idx]) ? (int) $weathercodes[$idx] : null;
             $mapped = $this->mapWeatherCode($code);
 
             $hourlyForecasts[] = [
-                'time'        => (string) ($times[$i] ?? ''),
-                'temperature' => isset($temperatures[$i]) ? (float) $temperatures[$i] : null,
-                'wind'        => isset($windspeeds[$i]) ? (float) $windspeeds[$i] : null,
-                'precip'      => isset($precipitations[$i]) ? (float) $precipitations[$i] : null,
+                'time'        => (string) ($times[$idx] ?? ''),
+                'temperature' => isset($temperatures[$idx]) ? (float) $temperatures[$idx] : null,
+                'wind'        => isset($windspeeds[$idx]) ? (float) $windspeeds[$idx] : null,
+                'precip'      => isset($precipitations[$idx]) ? (float) $precipitations[$idx] : null,
                 'weathercode' => $code,
                 'icon'        => $mapped['icon'],
                 'label'       => $mapped['label'],
