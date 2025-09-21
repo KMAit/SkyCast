@@ -31,7 +31,15 @@
           <div style="margin-top:8px">
             <div><strong>Temp.</strong> : {{ h.temp|default(h.temperature|default('—')) }}</div>
             <div><strong>Vent</strong> : {{ h.wind is not null ? (h.wind ~ ' km/h') : '—' }}</div>
-            <div><strong>Précip.</strong> : {{ h.precip is not null ? (h.precip ~ ' mm') : '—' }}</div>
+            <div>
+              <strong>Précip.</strong> :
+              {% if h.precip is not null %}
+                {{ h.precip_label }} <span class="muted small">({{ h.precip|number_format(1, '.', '') }} mm)</span>
+              {% else %}
+                —
+              {% endif %}
+            </div>
+
 
             {# Icon + label row (show if either exists) #}
             {% set has_icon = h.icon is defined and h.icon %}
