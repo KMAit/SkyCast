@@ -53,10 +53,7 @@
       <p class="muted small">Astuce : appuyez sur Entrée pour lancer la recherche.</p>
     </div>
 
-    <div class="hero-visual card" aria-hidden="true">
-      <div class="visual-placeholder"></div>
-      <p class="muted small">Aperçu graphique — sera remplacé par un visuel météo.</p>
-    </div>
+        {% include 'components/_chart_hourly.html.twig' with {hours: hours} %}
   </section>
 
   {# Current conditions — qualitative context (icon + label + timestamp) #}

@@ -279,3 +279,27 @@ main {
 .geo-message.error {
   color: #ff6b6b;
 }
+
+/* --- Hourly chart sizing (stable, no layout jump) --- */
+.chart-card .chart-wrap {
+  height: 220px; /* desktop default */
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  .chart-card .chart-wrap {
+    height: 200px;
+  }
+}
+@media (max-width: 520px) {
+  .chart-card .chart-wrap {
+    height: 180px;
+  }
+}
+
+/* Remove inline-block baseline gap, ensure no overflow */
+.chart-card canvas {
+  display: block;
+  width: 100%;
+  height: 100%; /* Chart.js will respect container height */
+}

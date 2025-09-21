@@ -1,0 +1,21 @@
+{# Hourly temperature chart — reads data from data-hours on <canvas> #}
+<div class="card chart-card">
+  <h2 class="h2">
+    <svg class="icon" aria-hidden="true"><use href="#icon-thermo"/></svg>
+    <span>Température — prochaines heures</span>
+  </h2>
+
+  {% if hours is not defined or hours is empty %}
+    <p class="muted">— en attente de résultats —</p>
+  {% else %}
+    <div class="chart-wrap">
+      {# Provide raw data to JS through a data-* attribute #}
+      <canvas
+        id="hourlyChart"
+        data-hours="{{ hours|json_encode|e('html_attr') }}"
+        aria-label="Graphique des températures horaires"
+        role="img"
+      ></canvas>
+    </div>
+  {% endif %}
+</div>

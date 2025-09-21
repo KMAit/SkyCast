@@ -1,47 +1,50 @@
 <!DOCTYPE html>
 <html lang="fr">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{{ title is defined ? title : 'SkyCast' }}</title>
-    <meta name="description" content="SkyCast — Prévisions météo locales, simples et claires." />
+  <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <title>{{ title is defined ? title : 'SkyCast' }}</title>
+      <meta name="description" content="SkyCast — Prévisions météo locales, simples et claires." />
 
-    {# Minimal favicon #}
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='5' fill='black'/></svg>">
+      {# Minimal favicon #}
+      <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='5' fill='black'/></svg>">
 
-    {# External CSS #}
-    <link rel="stylesheet" href="{{ asset('styles/app.css') }}">
-</head>
-<body>
-    {# Externalized SVG sprite to keep the layout template lightweight #}
-    {% include 'components/_icons.svg.twig' %}
+      {# External CSS #}
+      <link rel="stylesheet" href="{{ asset('styles/app.css') }}">
+  </head>
+  <body>
+      {# Externalized SVG sprite to keep the layout template lightweight #}
+      {% include 'components/_icons.svg.twig' %}
 
-    <header class="container header">
-        <div class="brand">
-            <span class="brand-dot" aria-hidden="true"></span>
-            <span>{{ app_name|default('SkyCast') }}</span>
-            <span class="badge">alpha</span>
-        </div>
-        <nav class="muted" aria-label="Navigation principale">
-            <a href="{{ path('home') }}">Accueil</a>
-        </nav>
-        <div class="theme-toggle" role="group" aria-label="Theme switch">
-          <button type="button" data-theme="theme-sky" aria-pressed="false" title="Sky">Sky</button>
-          <button type="button" data-theme="theme-nature" aria-pressed="false" title="Nature">Nature</button>
-          <button type="button" data-theme="theme-sunset" aria-pressed="false" title="Sunset">Sunset</button>
-        </div>
-    </header>
+      <header class="container header">
+          <div class="brand">
+              <span class="brand-dot" aria-hidden="true"></span>
+              <span>{{ app_name|default('SkyCast') }}</span>
+              <span class="badge">alpha</span>
+          </div>
+          <nav class="muted" aria-label="Navigation principale">
+              <a href="{{ path('home') }}">Accueil</a>
+          </nav>
+          <div class="theme-toggle" role="group" aria-label="Theme switch">
+            <button type="button" data-theme="theme-sky" aria-pressed="false" title="Sky">Sky</button>
+            <button type="button" data-theme="theme-nature" aria-pressed="false" title="Nature">Nature</button>
+            <button type="button" data-theme="theme-sunset" aria-pressed="false" title="Sunset">Sunset</button>
+          </div>
+      </header>
 
-    <main class="container">
-        {% block body %}{% endblock %}
-    </main>
+      <main class="container">
+          {% block body %}{% endblock %}
+      </main>
 
-    <footer class="container footer">
-        <p>&copy; {{ "now"|date('Y') }} {{ app_name|default('SkyCast') }}. Tous droits réservés.</p>
-    </footer>
+      <footer class="container footer">
+          <p>&copy; {{ "now"|date('Y') }} {{ app_name|default('SkyCast') }}. Tous droits réservés.</p>
+      </footer>
 
-    {# JS #}
-    <script src="{{ asset('scripts/home.js') }}" defer></script>
-    <script src="{{ asset('scripts/theme.js') }}" defer></script>
-</body>
+      {# JS #}
+      <script src="{{ asset('scripts/home.js') }}" defer></script>
+      <script src="{{ asset('scripts/theme.js') }}" defer></script>
+      {# Chart.js (CDN) + hourly chart script #}
+      <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js" defer></script>
+      <script src="{{ asset('scripts/chart-hourly.js') }}" defer></script>
+  </body>
 </html>
