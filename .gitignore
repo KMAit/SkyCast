@@ -8,6 +8,7 @@
 /phpunit.xml
 /.phpunit.cache/
 /node_modules/
+assets/vendor/
 
 ### VSCode (ignore tout le dossier .vscode) ###
 .vscode/
