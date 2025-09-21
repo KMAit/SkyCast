@@ -7,6 +7,8 @@
     "lint:twig": "vendor/bin/twigcs --display=errors --severity error templates",
     "lint:css": "stylelint \"assets/**/*.css\"",
     "lint:js": "eslint \"assets/**/*.js\"",
+    "format:twig": "prettier --write \"templates/**/*.twig\"",
+    "format:html": "prettier --write \"templates/**/*.html\"",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "php-cs-fix": "vendor/bin/php-cs-fixer fix --using-cache=no"
