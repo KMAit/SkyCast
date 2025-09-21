@@ -1,31 +1,22 @@
-
-###> symfony/framework-bundle ###
+### Symfony ###
+/var/
+/vendor/
+/public/bundles/
 /.env.local
 /.env.local.php
 /.env.*.local
-/config/secrets/prod/prod.decrypt.private.php
-/public/bundles/
-/var/
-/vendor/
-###< symfony/framework-bundle ###
-
-###> phpunit/phpunit ###
 /phpunit.xml
 /.phpunit.cache/
-###< phpunit/phpunit ###
-
-###> symfony/asset-mapper ###
-/public/assets/
-/assets/vendor/
-###< symfony/asset-mapper ###
-
-###> friendsofphp/php-cs-fixer ###
-/.php-cs-fixer.php
-/.php-cs-fixer.cache
-###< friendsofphp/php-cs-fixer ###
-
 /node_modules/
 
-# Ignore all VS Code settings except settings.json
-.vscode/*
-!.vscode/settings.json
+### VSCode (ignore tout le dossier .vscode) ###
+.vscode/
+
+### Logs ###
+/*.log
+
+### Cache ###
+/.cache/
+/npm-cache/
+/yarn-error.log
+/pnpm-debug.log
