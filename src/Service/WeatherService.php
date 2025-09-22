@@ -320,20 +320,14 @@ final class WeatherService
      */
     private function humanizePrecip(?float $mm): string
     {
-        if ($mm === null) {
-            return '—';
-        }
-        if ($mm < 0.1) {
+        if ($mm === null || $mm <= 0.0) {
             return 'Aucune pluie';
         }
-        if ($mm < 1.0) {
+        if ($mm < 0.5) {
             return 'Faible pluie';
         }
         if ($mm < 4.0) {
             return 'Pluie modérée';
-        }
-        if ($mm < 10.0) {
-            return 'Pluie soutenue';
         }
 
         return 'Pluie forte';
@@ -465,7 +459,7 @@ final class WeatherService
         if ($prec <= self::PRECIP_EPSILON) {
             // If the code indicates rain, degrade to a neutral "Cloudy"
             if ($this->isRainCode($code)) {
-                return ['icon' => 'cloud-sun', 'label' => 'Cloudy'];
+                return ['icon' => 'cloud-sun', 'label' => 'Nuageux'];
             }
 
             return $this->mapWeatherCode($code);
