@@ -26,6 +26,9 @@ final class WeatherService
     /** Base URL for weather forecast. */
     private const METEO_BASE = 'https://api.open-meteo.com/v1/forecast';
 
+    private const PRECIP_EPSILON = 0.1;
+    private const DRIZZLE_CUTOFF = 0.5; // mm under which we show "drizzle" icon
+
     public function __construct(
         private readonly HttpClientInterface $http,
     ) {
@@ -106,22 +109,18 @@ final class WeatherService
     ): ?array {
         try {
             $response = $this->http->request('GET', self::METEO_BASE, [
-                'query' => [
-                    'latitude'        => $latitude,
-                    'longitude'       => $longitude,
-                    'timezone'        => $timezone, // enforce same TZ for all times
-                    'current_weather' => 'true',
-                    // hourly variables (include weathercode for icons/labels)
-                    'hourly' => 'temperature_2m,precipitation,wind_speed_10m,weathercode',
-                    // daily variables
-                    'daily' => 'temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode',
-                    // ensure enough horizon to cross midnight safely
-                    'forecast_days' => 7,
-                ],
+                'query' => array_merge(
+                    [
+                        'latitude'  => $latitude,
+                        'longitude' => $longitude,
+                    ],
+                    $this->hourlyHorizonQuery($timezone)
+                ),
                 'timeout' => 8,
             ]);
 
-            $payload = $response->toArray(false);
+            $payload    = $response->toArray(false);
+            $hoursToday = $this->buildHoursToday($payload, $timezone);
         } catch (\Throwable) {
             return null;
         }
@@ -137,7 +136,6 @@ final class WeatherService
         $windspeeds     = $payload['hourly']['wind_speed_10m'] ?? [];
         $precipitations = $payload['hourly']['precipitation']  ?? [];
         $weathercodes   = $payload['hourly']['weathercode']    ?? [];
-
         // --- Current block (icon/label derived from weathercode if present)
         $currentWeather = $payload['current_weather'] ?? null;
         $current        = null;
@@ -167,9 +165,9 @@ final class WeatherService
         for ($i = 0; $i < $windowCount; ++$i) {
             $idx  = $startIndex + $i;
             $code = isset($weathercodes[$idx]) ? (int) $weathercodes[$idx] : null;
-            $map  = $this->mapWeatherCode($code);
 
-            $prec = isset($precipitations[$idx]) ? (float) $precipitations[$idx] : null;
+            $prec  = isset($precipitations[$idx]) ? (float) $precipitations[$idx] : null;
+            $state = $this->resolveHourlyState($code, $prec);
 
             $hourly[] = [
                 'time'         => (string) ($times[$idx] ?? ''),
@@ -178,8 +176,8 @@ final class WeatherService
                 'precip'       => $prec,
                 'precip_label' => $this->humanizePrecip($prec),
                 'weathercode'  => $code,
-                'icon'         => $map['icon'],
-                'label'        => $map['label'],
+                'icon'         => $state['icon'],
+                'label'        => $state['label'],
             ];
         }
 
@@ -216,9 +214,10 @@ final class WeatherService
                 'latitude'  => $latitude,
                 'longitude' => $longitude,
             ],
-            'current' => $current,
-            'hourly'  => $hourly,
-            'daily'   => $daily,
+            'current'     => $current,
+            'hourly'      => $hourly,
+            'daily'       => $daily,
+            'hours_today' => $hoursToday,
         ];
     }
 
@@ -338,5 +337,152 @@ final class WeatherService
         }
 
         return 'Pluie forte';
+    }
+
+    /**
+     * Build the list of hourly slots for the current local day (00:00 → 23:00),
+     * enriched with temperature, wind, precipitation, icon/label, and flags.
+     *
+     * @param array<string,mixed> $payload Open-Meteo response
+     *
+     * @return list<array{
+     *   time: string,
+     *   temperature: float|null,
+     *   wind: float|null,
+     *   precip: float|null,
+     *   weathercode: int|null,
+     *   icon: string,
+     *   label: string,
+     *   is_past: bool,
+     *   is_now: bool
+     * }>
+     */
+    private function buildHoursToday(array $payload, string $tz = 'Europe/Paris'): array
+    {
+        if (!isset($payload['hourly']['time'])) {
+            return [];
+        }
+
+        $times          = $payload['hourly']['time'];
+        $temperatures   = $payload['hourly']['temperature_2m'] ?? [];
+        $windspeeds     = $payload['hourly']['wind_speed_10m'] ?? [];
+        $precipitations = $payload['hourly']['precipitation']  ?? [];
+        $weathercodes   = $payload['hourly']['weathercode']    ?? [];
+
+        // Determine the local "today" boundaries
+        $now        = new \DateTimeImmutable('now', new \DateTimeZone($tz));
+        $startOfDay = $now->setTime(0, 0);
+        $endOfDay   = $now->setTime(23, 59, 59);
+
+        $out = [];
+        foreach ($times as $i => $iso) {
+            try {
+                $slot = new \DateTimeImmutable((string) $iso, new \DateTimeZone($tz));
+            } catch (\Throwable) {
+                continue;
+            }
+
+            // Keep only slots that belong to "today" (local)
+            if ($slot < $startOfDay || $slot > $endOfDay) {
+                continue;
+            }
+
+            $code  = isset($weathercodes[$i]) ? (int) $weathercodes[$i] : null;
+            $map   = $this->mapWeatherCode($code);
+            $mm    = isset($precipitations[$i]) ? (float) $precipitations[$i] : null;
+            $state = $this->resolveHourlyState($code, $mm);
+
+            $out[] = [
+                'time'         => (string) $iso,
+                'temperature'  => isset($temperatures[$i]) ? (float) $temperatures[$i] : null,
+                'wind'         => isset($windspeeds[$i]) ? (float) $windspeeds[$i] : null,
+                'precip'       => $mm,
+                'precip_label' => $this->humanizePrecip($mm),
+                'weathercode'  => $code,
+                'icon'         => $state['icon'],
+                'label'        => $state['label'],
+                'is_past'      => $slot < $now,
+                'is_now'       => $slot->format('H') === $now->format('H'),
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Ensure the hourly query has enough horizon (48h) so that today is fully covered.
+     */
+    private function hourlyHorizonQuery(string $tz): array
+    {
+        return [
+            'timezone'        => $tz,
+            'current_weather' => 'true',
+            // hourly variables (include weathercode for icons/labels)
+            'hourly' => 'temperature_2m,precipitation,wind_speed_10m,weathercode',
+            // daily variables
+            'daily' => 'temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode',
+            // ensure enough horizon to cross midnight safely
+            'forecast_days' => 7,
+        ];
+    }
+
+    /**
+     * True if code belongs to rain/thunder families in Open-Meteo WMO table.
+     */
+    private function isRainCode(?int $code): bool
+    {
+        if (null === $code) {
+            return false;
+        }
+
+        return ($code >= 51 && $code <= 67)  // drizzle / freezing rain
+            || ($code >= 80 && $code <= 82)  // showers
+            || ($code >= 95 && $code <= 99); // thunder
+    }
+
+    /**
+     * Resolve a consistent weather state (icon + label) for an hourly slot.
+     *
+     * Logic:
+     * - If precipitation is missing: fall back to weather code mapping.
+     * - If precipitation is ≤ epsilon (≈0 mm): override rainy codes to "Cloudy" to avoid conflicts.
+     * - If precipitation is > epsilon: use a human-friendly precipitation label
+     *   and select drizzle/rain/snow icons depending on intensity and code.
+     *
+     * @param int|null   $code Weather code from API (may indicate rain, snow, etc.)
+     * @param float|null $prec Precipitation amount (mm)
+     *
+     * @return array{icon: string, label: string} Icon identifier + user-facing label
+     */
+    private function resolveHourlyState(?int $code, ?float $prec): array
+    {
+        // No precipitation data: fallback to weather code mapping
+        if ($prec === null) {
+            return $this->mapWeatherCode($code);
+        }
+
+        // Zero or near zero precipitation: avoid showing "rain" when it does not rain
+        if ($prec <= self::PRECIP_EPSILON) {
+            // If the code indicates rain, degrade to a neutral "Cloudy"
+            if ($this->isRainCode($code)) {
+                return ['icon' => 'cloud-sun', 'label' => 'Cloudy'];
+            }
+
+            return $this->mapWeatherCode($code);
+        }
+
+        // Measurable precipitation: prefer intensity-based label
+        $label = $this->humanizePrecip($prec);
+
+        // Snow codes → force snow icon
+        if ($code !== null && $code >= 71 && $code <= 86) {
+            return ['icon' => 'snow', 'label' => $label];
+        }
+
+        // Distinguish drizzle vs rain based on threshold
+        return [
+            'icon'  => ($prec < self::DRIZZLE_CUTOFF ? 'drizzle' : 'rain'),
+            'label' => $label,
+        ];
     }
 }
