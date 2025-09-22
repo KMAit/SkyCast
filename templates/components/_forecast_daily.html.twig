@@ -32,16 +32,18 @@
               <div><strong>Min</strong> : {{ d.tmin is not null ? (d.tmin|number_format(1, '.', '')) ~ '°C' : '—' }}</div>
             </div>
 
+            {# Right column (precip + state). Keep mm only as tooltip when > 0 #}
             <div style="text-align:right">
-              <div>
-                <strong>Pluie</strong> :
-                {% if d.precip_mm is not null %}
-                  {{ d.precip_label }} <span class="muted small">({{ d.precip_mm|number_format(1, '.', '') }} mm)</span>
-                {% else %}
-                  —
-                {% endif %}
-              </div>
+              {# Precipitation label only (no numeric mm); tooltip shows mm if available #}
+              {% set mm = (d.precip_mm is defined and d.precip_mm is not null) ? d.precip_mm : null %}
+              {% set title_mm = (mm is not null and mm > 0) ? (mm|number_format(1, '.', '') ~ ' mm') : '' %}
+              {% set precip_text = d.precip_label|default(null) %}
 
+              {% if mm is not null and mm > 0 and precip_text %}
+                <div title="{{ title_mm }}">
+                  <strong>Pluie</strong> : {{ precip_text }}
+                </div>
+              {% endif %}
 
               {# Weather icon + label #}
               <div style="margin-top:6px; display:flex; align-items:center; gap:6px; justify-content:flex-end">
