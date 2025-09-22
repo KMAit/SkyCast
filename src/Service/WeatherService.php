@@ -268,19 +268,19 @@ final class WeatherService
 
         // Reference: https://open-meteo.com/en/docs (Weathercode)
         return match (true) {
-            0  === $code => ['icon' => 'sun',       'label' => 'Ciel clair'],
+            0  === $code => ['icon' => 'sun',        'label' => 'Ciel clair'],
             1  === $code,
             2  === $code,
-            3  === $code => ['icon' => 'cloud-sun', 'label' => 'Partiellement nuageux'],
+            3  === $code => ['icon' => 'cloud-sun',  'label' => 'Partiellement nuageux'],
             45 === $code,
-            48 === $code               => ['icon' => 'fog',       'label' => 'Brouillard'],
-            $code >= 51 && $code <= 57 => ['icon' => 'drizzle',   'label' => 'Bruine'],
-            $code >= 61 && $code <= 67 => ['icon' => 'rain',      'label' => 'Pluie'],
-            $code >= 71 && $code <= 77 => ['icon' => 'snow',      'label' => 'Neige'],
-            $code >= 80 && $code <= 82 => ['icon' => 'rain',      'label' => 'Averses'],
-            $code >= 85 && $code <= 86 => ['icon' => 'snow',      'label' => 'Averses de neige'],
-            $code >= 95 && $code <= 99 => ['icon' => 'thunder',   'label' => 'Orage'],
-            default                    => ['icon' => 'na',        'label' => 'Indéterminé'],
+            48 === $code               => ['icon' => 'fog',        'label' => 'Brouillard'],
+            $code >= 51 && $code <= 57 => ['icon' => 'drizzle',    'label' => 'Bruine'],
+            $code >= 61 && $code <= 67 => ['icon' => 'rain',       'label' => 'Pluie'],
+            $code >= 71 && $code <= 77 => ['icon' => 'snow',       'label' => 'Neige'],
+            $code >= 80 && $code <= 82 => ['icon' => 'rain',       'label' => 'Averses'],
+            $code >= 85 && $code <= 86 => ['icon' => 'snow',       'label' => 'Averses de neige'],
+            $code >= 95 && $code <= 99 => ['icon' => 'thunder',    'label' => 'Orage'],
+            default                    => ['icon' => 'cloud-sun',  'label' => 'Indéterminé'],
         };
     }
 
@@ -429,7 +429,8 @@ final class WeatherService
             return false;
         }
 
-        return ($code >= 51 && $code <= 67)  // drizzle / freezing rain
+        return ($code >= 51 && $code <= 57)  // drizzle
+            || ($code >= 61 && $code <= 67)  // rain
             || ($code >= 80 && $code <= 82)  // showers
             || ($code >= 95 && $code <= 99); // thunder
     }
@@ -450,14 +451,11 @@ final class WeatherService
      */
     private function resolveHourlyState(?int $code, ?float $prec): array
     {
-        // No precipitation data: fallback to weather code mapping
         if ($prec === null) {
             return $this->mapWeatherCode($code);
         }
 
-        // Zero or near zero precipitation: avoid showing "rain" when it does not rain
         if ($prec <= self::PRECIP_EPSILON) {
-            // If the code indicates rain, degrade to a neutral "Cloudy"
             if ($this->isRainCode($code)) {
                 return ['icon' => 'cloud-sun', 'label' => 'Nuageux'];
             }
@@ -465,15 +463,12 @@ final class WeatherService
             return $this->mapWeatherCode($code);
         }
 
-        // Measurable precipitation: prefer intensity-based label
         $label = $this->humanizePrecip($prec);
 
-        // Snow codes → force snow icon
         if ($code !== null && $code >= 71 && $code <= 86) {
             return ['icon' => 'snow', 'label' => $label];
         }
 
-        // Distinguish drizzle vs rain based on threshold
         return [
             'icon'  => ($prec < self::DRIZZLE_CUTOFF ? 'drizzle' : 'rain'),
             'label' => $label,
