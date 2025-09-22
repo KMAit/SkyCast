@@ -1,0 +1,71 @@
+{# Hourly forecast for the whole day (00:00 → 23:00) with a horizontal carousel #}
+
+<section class="card section-gap">
+  <h2 class="h2">
+    <svg class="icon" aria-hidden="true"><use href="#icon-clock"/></svg>
+    <span>Prévision horaire — aujourd’hui</span>
+  </h2>
+
+  {% if hours_today is not defined or hours_today is empty %}
+    <p class="muted">— en attente de résultats —</p>
+  {% else %}
+    <div class="carousel" role="region" aria-label="Prévision horaire aujourd’hui">
+      <button class="carousel-btn prev" type="button" aria-label="Faire défiler vers la gauche">‹</button>
+
+      <div class="carousel-track" role="list">
+        {% for h in hours_today %}
+          {# Format HH:mm from ISO #}
+          {% set t = h.time|default('') %}
+          {% set hhmm = t|length >= 16 ? t|slice(11, 5) : t %}
+
+          {# Safe flags (avoid missing key errors) #}
+          {% set past = h.is_past|default(false) %}
+          {% set now = h.is_now|default(false) %}
+
+          <article
+            class="hour-card{{ past ? ' is-past' : '' }}{{ now ? ' is-now' : '' }}"
+            role="listitem"
+            aria-label="Heure {{ hhmm }}"
+            data-hour="{{ hhmm }}"
+            {{ now ? 'data-current="1"' : '' }}
+          >
+            <div class="hour">{{ hhmm }}</div>
+
+            <div class="row">
+              <strong>Temp.</strong>
+              <span>
+                {% if h.temperature is not null %}
+                  {{ h.temperature|number_format(1, '.', '') }}°C
+                {% else %}
+                  —
+                {% endif %}
+              </span>
+            </div>
+
+            <div class="row">
+              <strong>Vent</strong>
+              <span>
+                {% if h.wind is not null %}
+                  {{ h.wind|number_format(0, '.', '') }} km/h
+                {% else %}
+                  —
+                {% endif %}
+              </span>
+            </div>
+
+          {# Weather state: icon + label. Keep mm only as a tooltip when > 0 #}
+          {% set mm = (h.precip is defined and h.precip is not null) ? h.precip : null %}
+          {% set title_mm = (mm is not null and mm > 0) ? (mm|number_format(1, '.', '') ~ ' mm') : '' %}
+
+          <div class="state" title="{{ title_mm }}">
+            <svg class="icon" aria-hidden="true"><use href="#icon-{{ h.icon|default('na') }}"/></svg>
+            <span class="small muted">{{ h.label|default('—') }}</span>
+          </div>
+          </article>
+        {% endfor %}
+      </div>
+
+      <button class="carousel-btn next" type="button" aria-label="Faire défiler vers la droite">›</button>
+    </div>
+  {% endif %}
+</section>
