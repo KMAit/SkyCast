@@ -53,7 +53,7 @@
       <p class="muted small">Astuce : appuyez sur Entrée pour lancer la recherche.</p>
     </div>
 
-        {% include 'components/_chart_hourly.html.twig' with {hours: hours} %}
+        {% include 'components/_hourly_chart.html.twig' with {hours: hours} %}
   </section>
 
   {# Current conditions — qualitative context (icon + label + timestamp) #}
@@ -85,8 +85,11 @@
     </div>
   </section>
 
-  {# Hourly forecast (with icons if provided) #}
-  {% include 'components/_forecast_hourly.html.twig' with {hours: hours} %}
+  {# Hourly chart (next hours) #}
+  {% include 'components/_hourly_chart.html.twig' with {hours: hours} %}
+
+  {# Hourly forecast — whole-day carousel #}
+  {% include 'components/_forecast_hourly_carousel.html.twig' with {hours_today: hours_today} %}
 
   {# Daily forecast (7 days) #}
   {% include 'components/_forecast_daily.html.twig' with {days: days} %}
