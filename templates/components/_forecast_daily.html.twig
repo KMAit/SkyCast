@@ -32,20 +32,20 @@
               <div><strong>Min</strong> : {{ d.tmin is not null ? (d.tmin|number_format(1, '.', '')) ~ '°C' : '—' }}</div>
             </div>
 
-            {# Right column (precip + state). Keep mm only as tooltip when > 0 #}
-            <div style="text-align:right">
-              {# Precipitation label only (no numeric mm); tooltip shows mm if available #}
-              {% set mm = (d.precip_mm is defined and d.precip_mm is not null) ? d.precip_mm : null %}
-              {% set title_mm = (mm is not null and mm > 0) ? (mm|number_format(1, '.', '') ~ ' mm') : '' %}
-              {% set precip_text = d.precip_label|default(null) %}
+            {# Right column (precip + state). Show readable precip only when > 0; keep mm in tooltip #}
+            {% set mm = (d.precip_mm is defined and d.precip_mm is not null) ? d.precip_mm : null %}
+            {% set show_precip = (mm is not null and mm > 0) %}
+            {% set title_mm = show_precip ? (mm|number_format(1, '.', '') ~ ' mm') : '' %}
 
-              {% if mm is not null and mm > 0 and precip_text %}
+            <div style="text-align:right">
+              {# Show “Pluie : <label>” only when there is measurable rain #}
+              {% if show_precip and d.precip_label is defined %}
                 <div title="{{ title_mm }}">
-                  <strong>Pluie</strong> : {{ precip_text }}
+                  <strong>Pluie</strong> : {{ d.precip_label }}
                 </div>
               {% endif %}
 
-              {# Weather icon + label #}
+              {# Weather icon + label (kept as visual+textual state) #}
               <div style="margin-top:6px; display:flex; align-items:center; gap:6px; justify-content:flex-end">
                 <svg class="icon" style="width:22px;height:22px" aria-hidden="true">
                   <use href="#icon-{{ d.icon|default('na') }}"/>
@@ -53,6 +53,7 @@
                 <span class="small muted">{{ d.label|default('—') }}</span>
               </div>
             </div>
+
           </div>
         </article>
       {% endfor %}
