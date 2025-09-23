@@ -30,6 +30,7 @@
             <div>
               <div><strong>Max</strong> : {{ d.tmax is not null ? (d.tmax|number_format(1, '.', '')) ~ '°C' : '—' }}</div>
               <div><strong>Min</strong> : {{ d.tmin is not null ? (d.tmin|number_format(1, '.', '')) ~ '°C' : '—' }}</div>
+              <div><strong>UV max</strong> : {{ d.uv_index_max is not null ? d.uv_index_max|number_format(1, '.', '') : '—' }}</div>
             </div>
 
             {# Right column (precip + state). Show readable precip only when > 0; keep mm in tooltip #}

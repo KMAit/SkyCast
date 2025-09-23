@@ -132,16 +132,30 @@ final class WeatherService
 
         // --- Extract hourly raw arrays
         $times          = $payload['hourly']['time'];
-        $temperatures   = $payload['hourly']['temperature_2m'] ?? [];
-        $windspeeds     = $payload['hourly']['wind_speed_10m'] ?? [];
-        $precipitations = $payload['hourly']['precipitation']  ?? [];
-        $weathercodes   = $payload['hourly']['weathercode']    ?? [];
+        $temperatures   = $payload['hourly']['temperature_2m']       ?? [];
+        $windspeeds     = $payload['hourly']['wind_speed_10m']       ?? [];
+        $precipitations = $payload['hourly']['precipitation']        ?? [];
+        $weathercodes   = $payload['hourly']['weathercode']          ?? [];
+        $humidities     = $payload['hourly']['relative_humidity_2m'] ?? []; // %
+        $uvIndexes      = $payload['hourly']['uv_index']             ?? []; // 0..11+
         // --- Current block (icon/label derived from weathercode if present)
         $currentWeather = $payload['current_weather'] ?? null;
         $current        = null;
         if (is_array($currentWeather)) {
-            $cCode   = isset($currentWeather['weathercode']) ? (int) $currentWeather['weathercode'] : null;
-            $cMap    = $this->mapWeatherCode($cCode);
+            $cCode = isset($currentWeather['weathercode']) ? (int) $currentWeather['weathercode'] : null;
+            $cMap  = $this->mapWeatherCode($cCode);
+
+            $curHumidity = null;
+            $curUvi      = null;
+
+            if (!empty($payload['current_weather']['time'])) {
+                $curIdx = $this->findStartIndex($times, (string) $payload['current_weather']['time'], $timezone);
+                if ($curIdx !== null) {
+                    $curHumidity = isset($humidities[$curIdx]) ? (float) $humidities[$curIdx] : null;
+                    $curUvi      = isset($uvIndexes[$curIdx]) ? (float) $uvIndexes[$curIdx] : null;
+                }
+            }
+
             $current = [
                 'temperature'   => isset($currentWeather['temperature']) ? (float) $currentWeather['temperature'] : null,
                 'windspeed'     => isset($currentWeather['windspeed']) ? (float) $currentWeather['windspeed'] : null,
@@ -151,6 +165,8 @@ final class WeatherService
                 'weathercode'   => $cCode,
                 'icon'          => $cMap['icon'],
                 'label'         => $cMap['label'],
+                'humidity'      => $curHumidity, // %
+                'uv_index'      => $curUvi,      // 0..11+
             ];
         }
 
@@ -178,17 +194,20 @@ final class WeatherService
                 'weathercode'  => $code,
                 'icon'         => $state['icon'],
                 'label'        => $state['label'],
+                'humidity'     => isset($humidities[$idx]) ? (float) $humidities[$idx] : null,
+                'uv_index'     => isset($uvIndexes[$idx]) ? (float) $uvIndexes[$idx] : null,
             ];
         }
 
         // --- Daily (7 days from API; we requested 3 days for safety but daily provides 7 by default if asked)
         $daily = [];
         if (isset($payload['daily']['time'])) {
-            $dDates  = $payload['daily']['time']               ?? [];
-            $tmax    = $payload['daily']['temperature_2m_max'] ?? [];
-            $tmin    = $payload['daily']['temperature_2m_min'] ?? [];
-            $precSum = $payload['daily']['precipitation_sum']  ?? [];
-            $wcode   = $payload['daily']['weathercode']        ?? [];
+            $dDates      = $payload['daily']['time']               ?? [];
+            $tmax        = $payload['daily']['temperature_2m_max'] ?? [];
+            $tmin        = $payload['daily']['temperature_2m_min'] ?? [];
+            $precSum     = $payload['daily']['precipitation_sum']  ?? [];
+            $wcode       = $payload['daily']['weathercode']        ?? [];
+            $uviMaxDaily = $payload['daily']['uv_index_max']       ?? [];
 
             $dCount = count($dDates);
             for ($i = 0; $i < $dCount; ++$i) {
@@ -205,6 +224,7 @@ final class WeatherService
                     'weathercode'  => $code,
                     'icon'         => $map['icon'],
                     'label'        => $map['label'],
+                    'uv_index_max' => isset($uviMaxDaily[$i]) ? (float) $uviMaxDaily[$i] : null,
                 ];
             }
         }
@@ -347,6 +367,8 @@ final class WeatherService
      *   weathercode: int|null,
      *   icon: string,
      *   label: string,
+     *   humidity: float|null,
+     *   uv_index: float|null,
      *   is_past: bool,
      *   is_now: bool
      * }>
@@ -358,12 +380,13 @@ final class WeatherService
         }
 
         $times          = $payload['hourly']['time'];
-        $temperatures   = $payload['hourly']['temperature_2m'] ?? [];
-        $windspeeds     = $payload['hourly']['wind_speed_10m'] ?? [];
-        $precipitations = $payload['hourly']['precipitation']  ?? [];
-        $weathercodes   = $payload['hourly']['weathercode']    ?? [];
+        $temperatures   = $payload['hourly']['temperature_2m']       ?? [];
+        $windspeeds     = $payload['hourly']['wind_speed_10m']       ?? [];
+        $precipitations = $payload['hourly']['precipitation']        ?? [];
+        $weathercodes   = $payload['hourly']['weathercode']          ?? [];
+        $humidities     = $payload['hourly']['relative_humidity_2m'] ?? [];
+        $uvIndexes      = $payload['hourly']['uv_index']             ?? [];
 
-        // Determine the local "today" boundaries
         $now        = new \DateTimeImmutable('now', new \DateTimeZone($tz));
         $startOfDay = $now->setTime(0, 0);
         $endOfDay   = $now->setTime(23, 59, 59);
@@ -375,14 +398,11 @@ final class WeatherService
             } catch (\Throwable) {
                 continue;
             }
-
-            // Keep only slots that belong to "today" (local)
             if ($slot < $startOfDay || $slot > $endOfDay) {
                 continue;
             }
 
             $code  = isset($weathercodes[$i]) ? (int) $weathercodes[$i] : null;
-            $map   = $this->mapWeatherCode($code);
             $mm    = isset($precipitations[$i]) ? (float) $precipitations[$i] : null;
             $state = $this->resolveHourlyState($code, $mm);
 
@@ -395,6 +415,8 @@ final class WeatherService
                 'weathercode'  => $code,
                 'icon'         => $state['icon'],
                 'label'        => $state['label'],
+                'humidity'     => isset($humidities[$i]) ? (float) $humidities[$i] : null, // %
+                'uv_index'     => isset($uvIndexes[$i]) ? (float) $uvIndexes[$i] : null,   // 0..11+
                 'is_past'      => $slot < $now,
                 'is_now'       => $slot->format('H') === $now->format('H'),
             ];
@@ -412,9 +434,9 @@ final class WeatherService
             'timezone'        => $tz,
             'current_weather' => 'true',
             // hourly variables (include weathercode for icons/labels)
-            'hourly' => 'temperature_2m,precipitation,wind_speed_10m,weathercode',
+            'hourly' => 'temperature_2m,precipitation,wind_speed_10m,weathercode,relative_humidity_2m,uv_index',
             // daily variables
-            'daily' => 'temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode',
+            'daily' => 'temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode,uv_index_max',
             // ensure enough horizon to cross midnight safely
             'forecast_days' => 7,
         ];

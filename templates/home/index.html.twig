@@ -78,10 +78,13 @@
       <span>Données actuelles</span>
     </h2>
 
-    <div class="grid grid-3" style="margin-top:10px">
+    <div class="grid grid-4" style="margin-top:10px">
       {% include 'components/_weather_card.html.twig' with {icon: 'icon-thermo', title: 'Température', content: cards.temperature|raw} %}
       {% include 'components/_weather_card.html.twig' with {icon: 'icon-wind', title: 'Vent', content: cards.wind|raw} %}
-      {% include 'components/_weather_card.html.twig' with {icon: 'icon-drop', title: 'Précipitations', content: cards.precipitation|raw} %}
+      {% if current is defined and current %}
+        {% include 'components/_weather_card.html.twig' with {icon: 'icon-drop', title: 'Humidité', content: (current.humidity is not null ? (current.humidity|number_format(0, '.', '') ~ '%') : '—')} %}
+        {% include 'components/_weather_card.html.twig' with {icon: 'icon-sun', title: 'Indice UV', content: (current.uv_index is not null ? current.uv_index|number_format(1, '.', '') : '—')} %}
+      {% endif %}
     </div>
   </section>
 
