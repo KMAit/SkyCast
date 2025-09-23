@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
+use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
@@ -31,6 +31,7 @@ final class WeatherService
 
     public function __construct(
         private readonly HttpClientInterface $http,
+        private readonly CacheInterface $cache,
     ) {
     }
 
@@ -55,19 +56,27 @@ final class WeatherService
             return null;
         }
 
-        try {
-            $response = $this->http->request('GET', self::GEO_BASE, [
-                'query' => [
-                    'name'     => $cityName,
-                    'count'    => $count,
-                    'language' => $language,
-                    'format'   => 'json',
-                ],
-                'timeout' => 8,
-            ]);
+        $normalized = mb_strtolower(trim($cityName));
+        $cacheKey   = sprintf('geocode:%s:%d:%s', $language, $count, $normalized);
 
-            $payload = $response->toArray(false);
-        } catch (TransportExceptionInterface|\Throwable) {
+        try {
+            $payload = $this->cache->get($cacheKey, function ($item) use ($normalized, $count, $language) {
+                // City coordinates are stable → cache for 24h
+                $item->expiresAfter(86400);
+
+                $response = $this->http->request('GET', self::GEO_BASE, [
+                    'query' => [
+                        'name'     => $normalized,
+                        'count'    => $count,
+                        'language' => $language,
+                        'format'   => 'json',
+                    ],
+                    'timeout' => 8,
+                ]);
+
+                return $response->toArray(false);
+            });
+        } catch (\Throwable) {
             return null;
         }
 
@@ -107,19 +116,34 @@ final class WeatherService
         string $timezone = 'Europe/Paris',
         int $hours = 12,
     ): ?array {
-        try {
-            $response = $this->http->request('GET', self::METEO_BASE, [
-                'query' => array_merge(
-                    [
-                        'latitude'  => $latitude,
-                        'longitude' => $longitude,
-                    ],
-                    $this->hourlyHorizonQuery($timezone)
-                ),
-                'timeout' => 8,
-            ]);
+        // Stable cache key (rounded coords to avoid explosion of keys) + timezone
+        $cacheKey = sprintf(
+            'forecast:%s:%s:%s',
+            number_format($latitude, 3, '.', ''),
+            number_format($longitude, 3, '.', ''),
+            $timezone
+        );
 
-            $payload    = $response->toArray(false);
+        try {
+            $payload = $this->cache->get($cacheKey, function ($item) use ($latitude, $longitude, $timezone) {
+                // Weather data should be fresh but not real-time → cache for 10 minutes
+                $item->expiresAfter(600);
+
+                $response = $this->http->request('GET', self::METEO_BASE, [
+                    'query' => array_merge(
+                        [
+                            'latitude'  => $latitude,
+                            'longitude' => $longitude,
+                        ],
+                        $this->hourlyHorizonQuery($timezone)
+                    ),
+                    'timeout' => 8,
+                ]);
+
+                return $response->toArray(false);
+            });
+
+            // Compute derived structures from payload (not cached separately)
             $hoursToday = $this->buildHoursToday($payload, $timezone);
         } catch (\Throwable) {
             return null;
@@ -138,6 +162,7 @@ final class WeatherService
         $weathercodes   = $payload['hourly']['weathercode']          ?? [];
         $humidities     = $payload['hourly']['relative_humidity_2m'] ?? []; // %
         $uvIndexes      = $payload['hourly']['uv_index']             ?? []; // 0..11+
+
         // --- Current block (icon/label derived from weathercode if present)
         $currentWeather = $payload['current_weather'] ?? null;
         $current        = null;
@@ -199,7 +224,7 @@ final class WeatherService
             ];
         }
 
-        // --- Daily (7 days from API; we requested 3 days for safety but daily provides 7 by default if asked)
+        // --- Daily (7 days)
         $daily = [];
         if (isset($payload['daily']['time'])) {
             $dDates      = $payload['daily']['time']               ?? [];
