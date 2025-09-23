@@ -282,25 +282,26 @@ final class WeatherService
      */
     private function mapWeatherCode(?int $code): array
     {
-        if (null === $code) {
+        if ($code === null) {
             return ['icon' => 'na', 'label' => 'Indisponible'];
         }
 
-        // Reference: https://open-meteo.com/en/docs (Weathercode)
         return match (true) {
-            0  === $code => ['icon' => 'sun',        'label' => 'Ciel clair'],
-            1  === $code,
-            2  === $code,
-            3  === $code => ['icon' => 'cloud-sun',  'label' => 'Partiellement nuageux'],
+            0 === $code => ['icon' => 'sun',       'label' => 'Ciel clair'],
+            1 === $code => ['icon' => 'sun',       'label' => 'Ciel dégagé'],
+            2 === $code => ['icon' => 'cloud-sun', 'label' => 'Partiellement nuageux'],
+
+            3 === $code => ['icon' => 'cloud',     'label' => 'Couvert'],
+
             45 === $code,
-            48 === $code               => ['icon' => 'fog',        'label' => 'Brouillard'],
-            $code >= 51 && $code <= 57 => ['icon' => 'drizzle',    'label' => 'Bruine'],
-            $code >= 61 && $code <= 67 => ['icon' => 'rain',       'label' => 'Pluie'],
-            $code >= 71 && $code <= 77 => ['icon' => 'snow',       'label' => 'Neige'],
-            $code >= 80 && $code <= 82 => ['icon' => 'rain',       'label' => 'Averses'],
-            $code >= 85 && $code <= 86 => ['icon' => 'snow',       'label' => 'Averses de neige'],
-            $code >= 95 && $code <= 99 => ['icon' => 'thunder',    'label' => 'Orage'],
-            default                    => ['icon' => 'cloud-sun',  'label' => 'Indéterminé'],
+            48 === $code                 => ['icon' => 'fog',       'label' => 'Brouillard'],
+            ($code >= 51 && $code <= 57) => ['icon' => 'drizzle',   'label' => 'Bruine'],
+            ($code >= 61 && $code <= 67) => ['icon' => 'rain',      'label' => 'Pluie'],
+            ($code >= 71 && $code <= 77) => ['icon' => 'snow',      'label' => 'Neige'],
+            ($code >= 80 && $code <= 82) => ['icon' => 'rain',      'label' => 'Averses'],
+            ($code >= 85 && $code <= 86) => ['icon' => 'snow',      'label' => 'Averses de neige'],
+            ($code >= 95 && $code <= 99) => ['icon' => 'thunder',   'label' => 'Orage'],
+            default                      => ['icon' => 'cloud-sun', 'label' => 'Indéterminé'],
         };
     }
 
@@ -479,7 +480,9 @@ final class WeatherService
 
         if ($prec <= self::PRECIP_EPSILON) {
             if ($this->isRainCode($code)) {
-                return ['icon' => 'cloud-sun', 'label' => 'Nuageux'];
+                return ($code === 3)
+                    ? ['icon' => 'cloud',     'label' => 'Couvert']
+                    : ['icon' => 'cloud-sun', 'label' => 'Nuageux'];
             }
 
             return $this->mapWeatherCode($code);
