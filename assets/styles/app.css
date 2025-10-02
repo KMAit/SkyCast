@@ -1,49 +1,32 @@
 /* ----------------------------
-  SkyCast - Base styles
+  SkyCast — Base styles
   ---------------------------- */
 
-/* --- Themes (vertical gradients) --- */
+/* --- Theme variables (vertical gradients) --- */
 :root {
-  /* Default theme (Nature) — top to bottom gradient, deep blue  → green */
+  /* Default theme (Nature) — top→bottom gradient, deep blue → green */
   --bg: linear-gradient(to bottom, #185a9d 0%, #43cea2 100%);
-
-  /* Card background (solid dark panel for readability on gradients) */
   --panel: rgba(0, 0, 0, 0.35);
-
-  /* Secondary text color (muted, less emphasis) */
-  --muted: #a3b1c6;
-
-  /* Primary text color (main content) */
   --text: #ffffff;
-
-  /* Primary accent color (buttons, active states) */
+  --muted: #a3b1c6;
   --accent: #6fb1ff;
-
-  /* Secondary accent color (warm highlights, secondary actions) */
   --accent-2: #ffd166;
-
-  /* Focus ring color (used for outlines/box-shadows on focus) */
   --ring: rgba(111, 177, 255, 0.45);
-
-  /* Divider color (subtle borders between sections/cards) */
   --divider: rgba(255, 255, 255, 0.2);
 }
 
-/* Sky (light blue → cyan) */
+/* Theme overrides (background only) */
 :root.theme-sky {
   --bg: linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%);
 }
-
-/* Nature (explicit, same as default) */
 :root.theme-nature {
   --bg: linear-gradient(to bottom, #185a9d 0%, #43cea2 100%);
 }
-
-/* Sunset (pink → light blue) */
 :root.theme-sunset {
   --bg: linear-gradient(to bottom, #a1c4fd 0%, #ff9a9e 100%);
 }
 
+/* Reset / base */
 *,
 *::before,
 *::after {
@@ -53,13 +36,10 @@ html,
 body {
   height: 100%;
 }
-
 body {
   margin: 0;
   min-height: 100vh;
-  background: var(--bg);
-  background-repeat: no-repeat;
-  background-attachment: fixed;
+  background: var(--bg) no-repeat fixed;
   background-size: cover;
   color: var(--text);
   font:
@@ -74,25 +54,9 @@ body {
     Arial;
 }
 
-/* Toggle */
-.theme-toggle {
-  display: inline-flex;
-  gap: 8px;
-}
-.theme-toggle button {
-  background: #1b2743;
-  color: var(--text);
-  border: 1px solid var(--divider);
-  border-radius: 10px;
-  padding: 6px 10px;
-  font-size: 12px;
-  cursor: pointer;
-}
-.theme-toggle button.is-active {
-  outline: 2px solid var(--accent);
-}
-
-/* Layout */
+/* ----------------------------
+  Header / layout
+----------------------------- */
 .container {
   max-width: 1100px;
   margin-inline: auto;
@@ -130,13 +94,15 @@ main {
 }
 .footer {
   padding: 24px 0;
-  color: #ffffff; /* blanc pur */
+  color: #fff;
   border-top: 1px solid var(--divider);
   margin-top: 24px;
-  text-align: center; /* centré */
+  text-align: center;
 }
 
-/* Cards */
+/* ----------------------------
+  Cards
+----------------------------- */
 .card {
   background: var(--panel);
   border: 1px solid var(--divider);
@@ -144,7 +110,9 @@ main {
   padding: 18px;
 }
 
-/* Grid */
+/* ----------------------------
+  Grid helpers
+----------------------------- */
 .grid {
   display: grid;
   gap: 18px;
@@ -155,7 +123,6 @@ main {
 .grid-3 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
-
 .grid-4 {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
@@ -165,12 +132,10 @@ main {
   .grid-3 {
     grid-template-columns: 1fr;
   }
-
   .grid-4 {
-    grid-template-columns: repeat(2, minmax(0, 1fr)); /* 2 cols on tablets */
-  }
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  } /* 2 cols on tablets */
 }
-
 @media (max-width: 520px) {
   .grid-3,
   .grid-4 {
@@ -178,7 +143,9 @@ main {
   }
 }
 
-/* Inputs */
+/* ----------------------------
+  Inputs / buttons
+----------------------------- */
 .input {
   appearance: none;
   width: 100%;
@@ -206,7 +173,6 @@ main {
   opacity: 0.8;
 }
 
-/* Buttons */
 .btn {
   background: var(--accent);
   color: #061120;
@@ -228,7 +194,9 @@ main {
   margin-left: 8px;
 }
 
-/* Hero */
+/* ----------------------------
+  Hero
+----------------------------- */
 .hero {
   display: grid;
   gap: 20px;
@@ -240,6 +208,7 @@ main {
     grid-template-columns: 1fr;
   }
 }
+
 .hero-visual {
   display: flex;
   align-items: center;
@@ -254,7 +223,9 @@ main {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
 }
 
-/* Typography & misc */
+/* ----------------------------
+  Typography / misc
+----------------------------- */
 .icon {
   width: 20px;
   height: 20px;
@@ -289,12 +260,63 @@ main {
   color: #ff6b6b;
 }
 
-/* --- Hourly chart sizing (stable, no layout jump) --- */
-.chart-card .chart-wrap {
-  height: 220px; /* desktop default */
-  width: 100%;
+/* ----------------------------
+  Theme toggle (dot swatches + optional text buttons)
+----------------------------- */
+.theme-toggle {
+  display: inline-flex;
+  gap: 10px;
 }
 
+/* Swatches (color dots) */
+.theme-toggle .swatch {
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid var(--divider);
+  cursor: pointer;
+  outline: none;
+  background-clip: padding-box;
+  display: inline-block;
+}
+/* Gradient previews (match theme backgrounds) */
+.theme-toggle .swatch-sky {
+  background: linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%) !important;
+}
+.theme-toggle .swatch-nature {
+  background: linear-gradient(to bottom, #185a9d 0%, #43cea2 100%) !important;
+}
+.theme-toggle .swatch-sunset {
+  background: linear-gradient(to bottom, #a1c4fd 0%, #ff9a9e 100%) !important;
+}
+
+.theme-toggle .swatch.is-active {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Optional text buttons living inside .theme-toggle */
+.theme-toggle button:not(.swatch) {
+  background: #1b2743;
+  color: var(--text);
+  border: 1px solid var(--divider);
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.theme-toggle button:not(.swatch).is-active {
+  outline: 2px solid var(--accent);
+}
+
+/* ----------------------------
+  Hourly chart sizing (stable)
+----------------------------- */
+.chart-card .chart-wrap {
+  height: 220px;
+  width: 100%;
+}
 @media (max-width: 900px) {
   .chart-card .chart-wrap {
     height: 200px;
@@ -305,62 +327,64 @@ main {
     height: 180px;
   }
 }
-
-/* Remove inline-block baseline gap, ensure no overflow */
 .chart-card canvas {
   display: block;
   width: 100%;
-  height: 100%; /* Chart.js will respect container height */
+  height: 100%;
 }
 
-/* --- Hourly carousel --- */
+/* ----------------------------
+  Hourly carousel
+----------------------------- */
 .carousel {
   position: relative;
   margin-top: 10px;
 }
 
+/* Horizontal grid track */
 .carousel-track {
   display: grid;
-  grid-auto-flow: column; /* horizontal flow */
+  grid-auto-flow: column;
   grid-auto-columns: 140px; /* card width */
   gap: 12px;
   overflow-x: auto;
-  padding: 6px 40px; /* space for arrows */
+  padding: 6px 40px; /* room for arrows */
   scroll-snap-type: x mandatory;
 }
 
-/* Hour card: simple vertical layout (time, values, state) */
-/* Hour card: vertical flex layout with card-like background */
+/* Hour card */
 .hour-card {
   display: flex;
   flex-direction: column;
   gap: 8px;
   padding: 12px;
   background: var(--panel);
-  border-radius: 12px; /* rounded corners */
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25); /* subtle shadow */
-  color: var(--text); /* consistent text color */
-  min-width: 120px; /* prevents collapse in carousel */
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  color: var(--text);
+  min-width: 120px; /* prevent collapse */
 }
-
-/* KPI rows: label/value on one line */
 .hour-card .row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 8px;
+  margin-bottom: 6px;
+}
+.hour-card .row:last-child {
+  margin-bottom: 0;
 }
 
-/* State block: push to the right, keep icon+label tight */
+/* State (icon + label), right-aligned */
 .hour-card .state {
-  align-self: flex-end; /* align the whole block to the right */
+  align-self: flex-end;
   display: flex;
   align-items: center;
   gap: 6px;
   margin-top: 2px;
 }
 
-/* Emphasis / de-emphasis */
+/* Emphasis */
 .hour-card.is-now {
   outline: 1px solid var(--accent);
   outline-offset: 2px;
@@ -370,6 +394,7 @@ main {
   opacity: 0.7;
 }
 
+/* Carousel arrows */
 .carousel-btn {
   position: absolute;
   top: 50%;
@@ -382,11 +407,9 @@ main {
   color: var(--text);
   cursor: pointer;
 }
-
 .carousel-btn:hover {
   filter: brightness(1.1);
 }
-
 .carousel-btn.prev {
   left: 6px;
 }
@@ -394,7 +417,6 @@ main {
   right: 6px;
 }
 
-/* Mobile: larger targets */
 @media (max-width: 600px) {
   .carousel-track {
     grid-auto-columns: 120px;
@@ -403,4 +425,103 @@ main {
     width: 32px;
     height: 32px;
   }
+}
+
+/* Toggle bar above the carousel */
+.toggle-bar {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin: 8px 0 4px 0;
+}
+
+/* Switch (accessible) */
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  user-select: none;
+}
+.switch input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.switch .slider {
+  width: 38px;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid var(--divider);
+  position: relative;
+  transition: background 0.2s ease;
+}
+.switch .slider::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s ease;
+}
+.switch input:checked + .slider {
+  background: var(--accent);
+}
+.switch input:checked + .slider::before {
+  transform: translateX(16px);
+}
+.switch .switch-label {
+  font-size: 13px;
+  color: var(--text);
+  opacity: 0.9;
+}
+
+/* Conditional visibility controlled by data-attributes on .carousel */
+.carousel[data-show-wind='0'] .wind-row {
+  display: none;
+}
+.carousel[data-show-precip='0'] .state-precip {
+  display: none;
+}
+
+/* Wind values block (stacked) */
+.wind-values {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.2;
+}
+
+/* Wind direction (arrow + deg) */
+.wind-dir {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* Wind arrow rotated via CSS variable --deg */
+.wind-arrow {
+  width: 14px;
+  height: 14px;
+  transform-origin: center;
+  transform: rotate(var(--deg, 0deg));
+  transition: transform 0.2s linear;
+}
+
+/* A11y helper (visually hidden text) */
+.sr-only {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
