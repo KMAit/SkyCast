@@ -211,16 +211,17 @@ final class WeatherService
             $state = $this->resolveHourlyState($code, $prec);
 
             $hourly[] = [
-                'time'         => (string) ($times[$idx] ?? ''),
-                'temperature'  => isset($temperatures[$idx]) ? (float) $temperatures[$idx] : null,
-                'wind'         => isset($windspeeds[$idx]) ? (float) $windspeeds[$idx] : null,
-                'precip'       => $prec,
-                'precip_label' => $this->humanizePrecip($prec),
-                'weathercode'  => $code,
-                'icon'         => $state['icon'],
-                'label'        => $state['label'],
-                'humidity'     => isset($humidities[$idx]) ? (float) $humidities[$idx] : null,
-                'uv_index'     => isset($uvIndexes[$idx]) ? (float) $uvIndexes[$idx] : null,
+                'time'          => (string) ($times[$idx] ?? ''),
+                'temperature'   => isset($temperatures[$idx]) ? (float) $temperatures[$idx] : null,
+                'wind'          => isset($windspeeds[$idx]) ? (float) $windspeeds[$idx] : null,
+                'precip'        => $prec,
+                'precip_label'  => $this->humanizePrecip($prec),
+                'weathercode'   => $code,
+                'icon'          => $state['icon'],
+                'label'         => $state['label'],
+                'humidity'      => isset($humidities[$idx]) ? (float) $humidities[$idx] : null,
+                'uv_index'      => isset($uvIndexes[$idx]) ? (float) $uvIndexes[$idx] : null,
+                'winddirection' => isset($payload['hourly']['winddirection_10m'][$idx]) ? (float) $payload['hourly']['winddirection_10m'][$idx] : null,
             ];
         }
 
@@ -412,6 +413,7 @@ final class WeatherService
         $weathercodes   = $payload['hourly']['weathercode']          ?? [];
         $humidities     = $payload['hourly']['relative_humidity_2m'] ?? [];
         $uvIndexes      = $payload['hourly']['uv_index']             ?? [];
+        $winddirs       = $payload['hourly']['winddirection_10m']    ?? [];
 
         $now        = new \DateTimeImmutable('now', new \DateTimeZone($tz));
         $startOfDay = $now->setTime(0, 0);
@@ -433,18 +435,19 @@ final class WeatherService
             $state = $this->resolveHourlyState($code, $mm);
 
             $out[] = [
-                'time'         => (string) $iso,
-                'temperature'  => isset($temperatures[$i]) ? (float) $temperatures[$i] : null,
-                'wind'         => isset($windspeeds[$i]) ? (float) $windspeeds[$i] : null,
-                'precip'       => $mm,
-                'precip_label' => $this->humanizePrecip($mm),
-                'weathercode'  => $code,
-                'icon'         => $state['icon'],
-                'label'        => $state['label'],
-                'humidity'     => isset($humidities[$i]) ? (float) $humidities[$i] : null, // %
-                'uv_index'     => isset($uvIndexes[$i]) ? (float) $uvIndexes[$i] : null,   // 0..11+
-                'is_past'      => $slot < $now,
-                'is_now'       => $slot->format('H') === $now->format('H'),
+                'time'          => (string) $iso,
+                'temperature'   => isset($temperatures[$i]) ? (float) $temperatures[$i] : null,
+                'wind'          => isset($windspeeds[$i]) ? (float) $windspeeds[$i] : null,
+                'precip'        => $mm,
+                'precip_label'  => $this->humanizePrecip($mm),
+                'weathercode'   => $code,
+                'icon'          => $state['icon'],
+                'label'         => $state['label'],
+                'humidity'      => isset($humidities[$i]) ? (float) $humidities[$i] : null, // %
+                'uv_index'      => isset($uvIndexes[$i]) ? (float) $uvIndexes[$i] : null,   // 0..11+
+                'is_past'       => $slot < $now,
+                'is_now'        => $slot->format('H') === $now->format('H'),
+                'winddirection' => isset($winddirs[$i]) ? (float) $winddirs[$i] : null,
             ];
         }
 
@@ -460,7 +463,7 @@ final class WeatherService
             'timezone'        => $tz,
             'current_weather' => 'true',
             // hourly variables (include weathercode for icons/labels)
-            'hourly' => 'temperature_2m,precipitation,wind_speed_10m,weathercode,relative_humidity_2m,uv_index',
+            'hourly' => 'temperature_2m,precipitation,wind_speed_10m,winddirection_10m,weathercode,relative_humidity_2m,uv_index',
             // daily variables
             'daily' => 'temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode,uv_index_max',
             // ensure enough horizon to cross midnight safely
