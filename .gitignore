@@ -21,3 +21,6 @@ assets/vendor/
 /npm-cache/
 /yarn-error.log
 /pnpm-debug.log
+
+### Assets compilés ###
+/public/assets/
