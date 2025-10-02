@@ -63,9 +63,10 @@
         <svg class="icon" aria-hidden="true"><use href="#icon-{{ current.icon|default('na') }}"/></svg>
         <span>Conditions actuelles — {{ current.label|default('—') }}</span>
       </h2>
-      <p class="muted small">
-        Mise à jour :
-        {{ current.time|format_datetime(locale='fr', pattern="'le' dd/MM 'à' HH:mm") }}
+
+      <p class="muted small"
+        title="{{ current.time|format_datetime(locale='fr', pattern="'le' dd/MM 'à' HH:mm") }}">
+        Mise à jour : {{ current_updated_ago ?? '—' }}
       </p>
     </section>
   {% endif %}

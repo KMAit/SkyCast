@@ -42,10 +42,11 @@ final class HomeController extends AbstractController
         $lon  = $request->query->get('lon');
 
         // --- Defaults
-        $forecast = null;
-        $error    = null;
-        $place    = null;
-        $coords   = null;
+        $forecast            = null;
+        $error               = null;
+        $place               = null;
+        $coords              = null;
+        $current_updated_ago = null;
 
         // --- Fetch forecast from city or coordinates
         if ($city !== '') {
@@ -88,6 +89,17 @@ final class HomeController extends AbstractController
             if (isset($current['windspeed']) && $current['windspeed'] !== null) {
                 $cards['wind'] = sprintf('<strong>%.0f km/h</strong>', (float) $current['windspeed']);
             }
+            if (!empty($forecast['current']['time'])) {
+                try {
+                    // Use same TZ as elsewhere to avoid inconsistencies
+                    $tz                  = new \DateTimeZone('Europe/Paris');
+                    $at                  = new \DateTimeImmutable((string) $forecast['current']['time'], $tz);
+                    $now                 = new \DateTimeImmutable('now', $tz);
+                    $current_updated_ago = $this->humanizeAgo($at, $now);
+                } catch (\Throwable) {
+                    $current_updated_ago = null;
+                }
+            }
         }
         if (!empty($hourly)) {
             // Prefer readable label (e.g. "Aucune pluie", "Pluie modérée") from service
@@ -101,17 +113,45 @@ final class HomeController extends AbstractController
 
         // --- Render
         return $this->render('home/index.html.twig', [
-            'title'       => 'SkyCast - Votre météo simplifiée',
-            'app_name'    => 'SkyCast',
-            'city'        => $city,
-            'current'     => $current,
-            'cards'       => $cards,
-            'hours'       => $hourly,      // used by the chart
-            'hours_today' => $hoursToday,  // used by the carousel
-            'days'        => $daily,       // 7-day daily forecast
-            'coords'      => $coords,
-            'place'       => $place,
-            'error'       => $error,
+            'title'               => 'SkyCast - Votre météo simplifiée',
+            'app_name'            => 'SkyCast',
+            'city'                => $city,
+            'current'             => $current,
+            'current_updated_ago' => $current_updated_ago,
+            'cards'               => $cards,
+            'hours'               => $hourly,      // used by the chart
+            'hours_today'         => $hoursToday,  // used by the carousel
+            'days'                => $daily,       // 7-day daily forecast
+            'coords'              => $coords,
+            'place'               => $place,
+            'error'               => $error,
         ]);
+    }
+
+    /**
+     * Humanize a timestamp difference into short French text.
+     * Examples: "à l’instant", "il y a 2 min", "il y a 3 h", "il y a 5 j".
+     */
+    private function humanizeAgo(\DateTimeImmutable $from, \DateTimeImmutable $to): string
+    {
+        $delta = $to->getTimestamp() - $from->getTimestamp();
+
+        if ($delta < 45) {
+            return 'à l’instant';
+        }
+        if ($delta < 90) {
+            return 'il y a 1 min';
+        }
+        $mins = (int) floor($delta / 60);
+        if ($mins < 60) {
+            return "il y a {$mins} min";
+        }
+        $hours = (int) floor($mins / 60);
+        if ($hours < 24) {
+            return "il y a {$hours} h";
+        }
+        $days = (int) floor($hours / 24);
+
+        return "il y a {$days} j";
     }
 }
