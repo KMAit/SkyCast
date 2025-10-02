@@ -22,13 +22,23 @@
               <span>{{ app_name|default('SkyCast') }}</span>
               <span class="badge">alpha</span>
           </div>
-          <nav class="muted" aria-label="Navigation principale">
-              <a href="{{ path('home') }}">Accueil</a>
-          </nav>
-          <div class="theme-toggle" role="group" aria-label="Theme switch">
-            <button type="button" data-theme="theme-sky" aria-pressed="false" title="Sky">Sky</button>
-            <button type="button" data-theme="theme-nature" aria-pressed="false" title="Nature">Nature</button>
-            <button type="button" data-theme="theme-sunset" aria-pressed="false" title="Sunset">Sunset</button>
+
+          <div class="theme-toggle" role="group" aria-label="Changer de thème">
+            <button type="button" class="swatch swatch-sky"     data-theme="theme-sky"     aria-pressed="false" title="Sky">
+              <span class="sr-only">Sky</span>
+            </button>
+            <button type="button" class="swatch swatch-nature"  data-theme="theme-nature"  aria-pressed="false" title="Nature">
+              <span class="sr-only">Nature</span>
+            </button>
+            <button type="button" class="swatch swatch-sunset"  data-theme="theme-sunset"  aria-pressed="false" title="Sunset">
+              <span class="sr-only">Sunset</span>
+            </button>
+          </div>
+
+          {# Unit toggle (°C / °F) #}
+          <div class="unit-toggle" role="group" aria-label="Unités">
+            <button type="button" data-unit="C" aria-pressed="true" title="Celsius">°C</button>
+            <button type="button" data-unit="F" aria-pressed="false" title="Fahrenheit">°F</button>
           </div>
       </header>
 
@@ -47,5 +57,6 @@
       <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js" defer></script>
       <script src="{{ asset('scripts/hourly-chart.js') }}" defer></script>
       <script src="{{ asset('scripts/hourly-carousel.js') }}" defer></script>
+      <script src="{{ asset('scripts/unit-toggle.js') }}" defer></script>
   </body>
 </html>
