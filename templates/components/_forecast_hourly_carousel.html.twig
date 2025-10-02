@@ -7,10 +7,28 @@
     <span>Prévision horaire — aujourd’hui</span>
   </h2>
 
+  <div class="toggle-bar" role="group" aria-label="Options d’affichage">
+  <label class="switch">
+    <input type="checkbox" class="toggle-wind" checked aria-label="Afficher le vent">
+    <span class="slider" aria-hidden="true"></span>
+    <span class="switch-label">Vent</span>
+  </label>
+
+  <label class="switch">
+    <input type="checkbox" class="toggle-precip" checked aria-label="Afficher l’état pluie/neige">
+    <span class="slider" aria-hidden="true"></span>
+    <span class="switch-label">Précip.</span>
+  </label>
+</div>
+
   {% if hours_today is not defined or hours_today is empty %}
     <p class="muted">— en attente de résultats —</p>
   {% else %}
-    <div class="carousel" role="region" aria-label="Prévision horaire aujourd’hui">
+    <div class="carousel"
+    role="region"
+    aria-label="Prévision horaire aujourd’hui"
+    data-show-wind="1"
+    data-show-precip="1">
       <button class="carousel-btn prev" type="button" aria-label="Faire défiler vers la gauche">‹</button>
 
       <div class="carousel-track" role="list">
@@ -37,7 +55,7 @@
             <div>
               <div class="row">
                 <strong>Temp.</strong>
-                <span>
+                  <span class="js-temp" data-temp-c="{{ h.temperature is not null ? h.temperature : '' }}">
                   {% if h.temperature is not null %}
                     {{ h.temperature|number_format(1, '.', '') }}°C
                   {% else %}
@@ -46,18 +64,26 @@
                 </span>
               </div>
 
-              <div class="row">
+              <div class="row wind-row">
                 <strong>Vent</strong>
-                <span>
-                  {% if h.wind is not null %}
-                    {{ h.wind|number_format(0, '.', '') }} km/h
-                  {% else %}
-                    —
+                <div class="wind-values">
+                  <span>
+                    {{ h.wind is not null ? (h.wind|number_format(0, '.', '') ~ ' km/h') : '—' }}
+                  </span>
+                  {% if h.winddirection is defined and h.winddirection is not null %}
+                    <span class="wind-dir">
+                      <svg class="wind-arrow" style="--deg: {{ h.winddirection }}deg" aria-hidden="true" viewBox="0 0 24 24">
+                        <!-- Simple upward arrow; rotation applies via CSS variable -->
+                        <path d="M12 3 L8 9 H11 V21 H13 V9 H16 Z" fill="currentColor"/>
+                      </svg>
+
+                      {{ h.winddirection }}°
+                    </span>
                   {% endif %}
-                </span>
+                </div>
               </div>
 
-              {# Humidity row (no ternary to satisfy TwigCS) #}
+              {# Humidity row #}
               <div class="row">
                 <strong>Humidité</strong>
                 <span>
@@ -85,7 +111,7 @@
             {# Col 3 — state (icon + label), right-aligned by CSS #}
             {% set mm = (h.precip is defined and h.precip is not null) ? h.precip : null %}
             {% set title_mm = (mm is not null and mm > 0) ? (mm|number_format(1, '.', '') ~ ' mm') : '' %}
-            <div class="state" title="{{ title_mm }}">
+            <div class="state state-precip" title="{{ title_mm }}">
               <svg class="icon" aria-hidden="true"><use href="#icon-{{ h.icon|default('na') }}"/></svg>
               <span class="small muted">{{ h.label|default('—') }}</span>
             </div>
