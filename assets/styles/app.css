@@ -525,3 +525,97 @@ main {
   white-space: nowrap;
   border: 0;
 }
+
+/* Skeletons (generic shimmer) */
+.skel {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+}
+.skel::after {
+  /* Shimmer sweep */
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.18) 45%,
+    rgba(255, 255, 255, 0.28) 50%,
+    rgba(255, 255, 255, 0.18) 55%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  animation: skel-sweep 1.2s infinite;
+}
+@keyframes skel-sweep {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* Common blocks */
+.skel-line {
+  height: 12px;
+  border-radius: 6px;
+}
+.skel-line.sm {
+  height: 8px;
+  border-radius: 4px;
+}
+.skel-line.lg {
+  height: 16px;
+  border-radius: 8px;
+}
+.skel-gap > * + * {
+  margin-top: 8px;
+}
+
+/* Chart placeholder size (matches chart-wrap) */
+.skel-chart {
+  height: 220px;
+}
+
+/* Hour-card skeleton layout */
+.skel-hour {
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--panel);
+}
+.skel-hour .top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.skel-hour .rows {
+  margin-top: 10px;
+}
+.skel-hour .state {
+  margin-top: 8px;
+  width: 60%;
+  margin-left: auto;
+}
+
+/* Daily-card skeleton layout */
+.skel-day {
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--panel);
+}
+.skel-day .rows {
+  margin-top: 10px;
+}
+.skel-day .state {
+  margin-top: 8px;
+  width: 70%;
+  margin-left: auto;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .skel::after {
+    animation: none;
+  }
+}

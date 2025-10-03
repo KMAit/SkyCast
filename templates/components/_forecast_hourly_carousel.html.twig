@@ -22,7 +22,28 @@
 </div>
 
   {% if hours_today is not defined or hours_today is empty %}
-    <p class="muted">— en attente de résultats —</p>
+    <div class="carousel" role="region" aria-label="Prévision horaire aujourd’hui">
+      <div class="carousel-track" role="list">
+        {# 4 placeholders #}
+        {% for i in 1..4 %}
+          <article class="skel-hour" role="listitem" aria-hidden="true">
+            <div class="top">
+              <div class="skel skel-line" style="width:48px;"></div>
+              <div class="skel skel-line" style="width:42px;"></div>
+            </div>
+            <div class="rows skel-gap">
+              <div class="skel skel-line" style="width:80%;"></div>
+              <div class="skel skel-line" style="width:70%;"></div>
+              <div class="skel skel-line" style="width:65%;"></div>
+              <div class="skel skel-line sm" style="width:55%;"></div>
+            </div>
+            <div class="state">
+              <div class="skel skel-line sm"></div>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    </div>
   {% else %}
     <div class="carousel"
     role="region"

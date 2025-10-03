@@ -5,7 +5,9 @@
   </h2>
 
   {% if hours is not defined or hours is empty %}
-    <p class="muted">— en attente de résultats —</p>
+    <div class="chart-wrap">
+      <div class="skel skel-chart"></div>
+    </div>
   {% else %}
     <div class="chart-wrap">
       <canvas
