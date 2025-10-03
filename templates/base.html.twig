@@ -6,8 +6,11 @@
       <title>{{ title is defined ? title : 'SkyCast' }}</title>
       <meta name="description" content="SkyCast — Prévisions météo locales, simples et claires." />
 
-      {# Minimal favicon #}
-      <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='5' fill='black'/></svg>">
+      {# Modern favicon (SVG, supported by most browsers) #}
+      <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+
+      {# Fallback PNG favicon (for older browsers / Safari compatibility) #}
+      <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon.png') }}">
 
       {# External CSS #}
       <link rel="stylesheet" href="{{ asset('styles/app.css') }}">
@@ -18,9 +21,8 @@
 
       <header class="container header">
           <div class="brand">
-              <span class="brand-dot" aria-hidden="true"></span>
-              <span>{{ app_name|default('SkyCast') }}</span>
-              <span class="badge">alpha</span>
+            <img src="{{ asset('logo.svg') }}" alt="SkyCast logo" class="logo" />
+            <span class="badge">alpha</span>
           </div>
 
           <div class="theme-toggle" role="group" aria-label="Changer de thème">
