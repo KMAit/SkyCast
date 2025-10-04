@@ -599,6 +599,81 @@ main {
   }
 }
 
+/* Splash overlay */
+.splash {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  display: grid;
+  place-items: center;
+  z-index: 9999;
+  transition:
+    opacity 350ms ease,
+    visibility 350ms ease;
+}
+.splash-logo {
+  width: clamp(96px, 22vw, 180px);
+  height: auto;
+  opacity: 0;
+  transform: translateY(8px);
+  animation: splash-pop 500ms ease forwards 120ms;
+}
+/* Fade out state (JS adds .is-hidden) */
+.splash.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* Logo pop-in */
+@keyframes splash-pop {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .splash {
+    transition: none;
+  }
+  .splash-logo {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.splash-screen {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  transition: opacity 0.6s ease;
+}
+
+.splash-screen.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.splash-logo {
+  width: 120px;
+  opacity: 1;
+  transform: scale(1);
+  transition:
+    opacity 0.6s ease,
+    transform 0.6s ease;
+}
+
+.splash-screen.fade-out .splash-logo {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
 /* =========================
    Responsive
    ========================= */

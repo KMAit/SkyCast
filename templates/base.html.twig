@@ -16,6 +16,12 @@
       <link rel="stylesheet" href="{{ asset('styles/app.css') }}">
   </head>
   <body>
+
+      <div class="splash-screen">
+  <img src="{{ asset('logo.svg') }}" alt="Logo SkyCast" class="splash-logo" />
+</div>
+
+
       {# Externalized SVG sprite to keep the layout template lightweight #}
       {% include 'components/_icons.svg.twig' %}
 
@@ -45,6 +51,7 @@
 
       {# JS #}
       <script src="{{ asset('scripts/skycast-core.js') }}" defer></script>
+      <script src="{{ asset('scripts/splash.js') }}" defer></script>
       <script src="{{ asset('scripts/home.js') }}" defer></script>
       <script src="{{ asset('scripts/theme.js') }}" defer></script>
       {# Chart.js (CDN) + hourly chart script #}
