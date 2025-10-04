@@ -37,6 +37,8 @@
 html,
 body {
   height: 100%;
+  min-height: 100%;
+  overflow-x: hidden; /* prevent horizontal scroll on narrow viewports */
 }
 body {
   margin: 0;
@@ -56,6 +58,22 @@ body {
     Arial;
 }
 
+/* Keep main blocks from overflowing width */
+header,
+.hero,
+.card,
+.grid,
+.carousel,
+.carousel-track {
+  max-width: 100%;
+}
+
+img,
+svg {
+  max-width: 100%;
+  height: auto;
+}
+
 /* ----------------------------
   Header / layout
 ----------------------------- */
@@ -68,9 +86,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 16px 0;
-  border-bottom: 1px solid var(--divider);
+  flex-wrap: wrap; /* allow wrap on small screens */
+  gap: 12px;
 }
 .brand {
   display: flex;
@@ -86,10 +103,12 @@ body {
   background: var(--accent-2);
   display: inline-block;
 }
+/* Logo size (desktop baseline; shrinks via media queries) */
 .logo {
-  height: 85px;
+  height: 70px;
   width: auto;
 }
+
 .badge {
   font-size: 12px;
   color: var(--muted);
@@ -131,21 +150,6 @@ main {
 }
 .grid-4 {
   grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-@media (max-width: 900px) {
-  .grid-2,
-  .grid-3 {
-    grid-template-columns: 1fr;
-  }
-  .grid-4 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-@media (max-width: 520px) {
-  .grid-3,
-  .grid-4 {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* ----------------------------
@@ -207,11 +211,6 @@ main {
   gap: 20px;
   align-items: center;
   grid-template-columns: 1.2fr 0.8fr;
-}
-@media (max-width: 900px) {
-  .hero {
-    grid-template-columns: 1fr;
-  }
 }
 .hero-visual {
   display: flex;
@@ -302,16 +301,6 @@ main {
   height: 220px;
   width: 100%;
 }
-@media (max-width: 900px) {
-  .chart-card .chart-wrap {
-    height: 200px;
-  }
-}
-@media (max-width: 520px) {
-  .chart-card .chart-wrap {
-    height: 180px;
-  }
-}
 .chart-card canvas {
   display: block;
   width: 100%;
@@ -395,15 +384,6 @@ main {
 }
 .carousel-btn.next {
   right: 6px;
-}
-@media (max-width: 600px) {
-  .carousel-track {
-    grid-auto-columns: 120px;
-  }
-  .carousel-btn {
-    width: 32px;
-    height: 32px;
-  }
 }
 
 /* Toggle bar (spacing container above carousels or blocks) */
@@ -616,5 +596,106 @@ main {
 @media (prefers-reduced-motion: reduce) {
   .skel::after {
     animation: none;
+  }
+}
+
+/* =========================
+   Responsive
+   ========================= */
+
+/* ≤ 900px : tablets / large phones */
+@media (max-width: 900px) {
+  /* Make gradient behave nicely on mobile Safari (no white strip at bottom) */
+  body {
+    background-attachment: scroll;
+    min-height: 100dvh;
+    background-size: cover;
+  }
+  .hero {
+    grid-template-columns: 1fr;
+  }
+  .grid-2,
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
+  .grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .chart-card .chart-wrap {
+    height: 200px;
+  }
+}
+
+/* ≤ 700px : compact header layout */
+@media (max-width: 700px) {
+  /* Let flex items actually shrink instead of overflowing */
+  .header > * {
+    min-width: 0;
+  }
+
+  /* Make each piece flexible */
+  .brand,
+  .theme-toggle,
+  .unit-toggle {
+    flex: 1 1 auto;
+  }
+
+  /* Tighter spacing so content fits */
+  .brand,
+  .theme-toggle {
+    gap: 8px;
+  }
+
+  /* Smaller swatches to save space */
+  .theme-toggle .swatch {
+    width: 24px;
+    height: 24px;
+  }
+
+  .header {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .brand {
+    justify-content: center;
+  }
+  .theme-toggle {
+    order: 1;
+  }
+  .unit-toggle {
+    order: 2;
+  }
+  /* Cap logo size relative to viewport */
+  .logo {
+    height: 56px;
+    max-width: 60vw; /* prevents horizontal overflow */
+  }
+}
+
+/* ≤ 600px : carousel tweaks */
+@media (max-width: 600px) {
+  .carousel-track {
+    grid-auto-columns: 120px;
+  }
+  .carousel-btn {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+/* ≤ 520px : small phones */
+@media (max-width: 520px) {
+  .grid-3,
+  .grid-4 {
+    grid-template-columns: 1fr;
+  }
+  .container {
+    padding: 20px 16px;
+  }
+  .carousel-track {
+    padding: 6px 32px;
+  }
+  .chart-card .chart-wrap {
+    height: 180px;
   }
 }
