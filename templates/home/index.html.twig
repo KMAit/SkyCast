@@ -79,8 +79,17 @@
       <span>Données actuelles</span>
     </h2>
 
+    <div class="toggle-bar">
+      <label class="switch" aria-label="Basculer entre Celsius et Fahrenheit">
+        <span class="switch-label">°C</span>
+        <input type="checkbox" class="js-unit-toggle" />
+        <span class="slider"></span>
+        <span class="switch-label">°F</span>
+      </label>
+    </div>
+
+
     <div class="grid grid-4" style="margin-top:10px">
-      {# Temperature #}
       {% if current is defined and current %}
         {% if current.temperature is not null %}
           {% set c = current.temperature %}

@@ -26,7 +26,9 @@
   --bg: linear-gradient(to bottom, #a1c4fd 0%, #ff9a9e 100%);
 }
 
-/* Reset / base */
+/* ----------------------------
+  Reset / base
+----------------------------- */
 *,
 *::before,
 *::after {
@@ -84,12 +86,10 @@ body {
   background: var(--accent-2);
   display: inline-block;
 }
-
 .logo {
   height: 85px;
   width: auto;
 }
-
 .badge {
   font-size: 12px;
   color: var(--muted);
@@ -132,7 +132,6 @@ main {
 .grid-4 {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
-
 @media (max-width: 900px) {
   .grid-2,
   .grid-3 {
@@ -140,7 +139,7 @@ main {
   }
   .grid-4 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  } /* 2 cols on tablets */
+  }
 }
 @media (max-width: 520px) {
   .grid-3,
@@ -214,7 +213,6 @@ main {
     grid-template-columns: 1fr;
   }
 }
-
 .hero-visual {
   display: flex;
   align-items: center;
@@ -258,7 +256,6 @@ main {
 .section-gap {
   margin-top: 20px;
 }
-
 .geo-message.success {
   color: #4caf50;
 }
@@ -267,14 +264,12 @@ main {
 }
 
 /* ----------------------------
-  Theme toggle (dot swatches + optional text buttons)
+  Theme toggle (swatches)
 ----------------------------- */
 .theme-toggle {
   display: inline-flex;
   gap: 10px;
 }
-
-/* Swatches (color dots) */
 .theme-toggle .swatch {
   appearance: none;
   width: 28px;
@@ -286,7 +281,6 @@ main {
   background-clip: padding-box;
   display: inline-block;
 }
-/* Gradient previews (match theme backgrounds) */
 .theme-toggle .swatch-sky {
   background: linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%) !important;
 }
@@ -296,24 +290,9 @@ main {
 .theme-toggle .swatch-sunset {
   background: linear-gradient(to bottom, #a1c4fd 0%, #ff9a9e 100%) !important;
 }
-
 .theme-toggle .swatch.is-active {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-}
-
-/* Optional text buttons living inside .theme-toggle */
-.theme-toggle button:not(.swatch) {
-  background: #1b2743;
-  color: var(--text);
-  border: 1px solid var(--divider);
-  border-radius: 10px;
-  padding: 6px 10px;
-  font-size: 12px;
-  cursor: pointer;
-}
-.theme-toggle button:not(.swatch).is-active {
-  outline: 2px solid var(--accent);
 }
 
 /* ----------------------------
@@ -346,19 +325,17 @@ main {
   position: relative;
   margin-top: 10px;
 }
-
-/* Horizontal grid track */
+/* Horizontal track */
 .carousel-track {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: 140px; /* card width */
+  grid-auto-columns: 140px;
   gap: 12px;
   overflow-x: auto;
   padding: 6px 40px; /* room for arrows */
   scroll-snap-type: x mandatory;
 }
-
-/* Hour card */
+/* Hour-card */
 .hour-card {
   display: flex;
   flex-direction: column;
@@ -368,7 +345,7 @@ main {
   border-radius: 12px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
   color: var(--text);
-  min-width: 120px; /* prevent collapse */
+  min-width: 120px;
 }
 .hour-card .row {
   display: flex;
@@ -380,7 +357,6 @@ main {
 .hour-card .row:last-child {
   margin-bottom: 0;
 }
-
 /* State (icon + label), right-aligned */
 .hour-card .state {
   align-self: flex-end;
@@ -389,7 +365,6 @@ main {
   gap: 6px;
   margin-top: 2px;
 }
-
 /* Emphasis */
 .hour-card.is-now {
   outline: 1px solid var(--accent);
@@ -399,7 +374,6 @@ main {
 .hour-card.is-past {
   opacity: 0.7;
 }
-
 /* Carousel arrows */
 .carousel-btn {
   position: absolute;
@@ -422,7 +396,6 @@ main {
 .carousel-btn.next {
   right: 6px;
 }
-
 @media (max-width: 600px) {
   .carousel-track {
     grid-auto-columns: 120px;
@@ -433,7 +406,7 @@ main {
   }
 }
 
-/* Toggle bar above the carousel */
+/* Toggle bar (spacing container above carousels or blocks) */
 .toggle-bar {
   display: flex;
   gap: 16px;
@@ -441,7 +414,10 @@ main {
   margin: 8px 0 4px 0;
 }
 
-/* Switch (accessible) */
+/* ----------------------------
+  Switch (generic) + compact modifier
+----------------------------- */
+/* Generic switch (used everywhere) */
 .switch {
   display: inline-flex;
   align-items: center;
@@ -485,7 +461,26 @@ main {
   opacity: 0.9;
 }
 
-/* Conditional visibility controlled by data-attributes on .carousel */
+/* Compact modifier — for tight toolbars (e.g. “Données actuelles”) */
+.switch--compact {
+  gap: 8px;
+}
+.switch--compact .switch-label {
+  font-size: 13px;
+  color: var(--muted);
+}
+.switch--compact input:checked ~ .switch-label:last-child {
+  color: var(--text);
+  font-weight: 600;
+}
+.switch--compact input:not(:checked) ~ .switch-label:first-child {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* ----------------------------
+  Conditional visibility (carousel)
+----------------------------- */
 .carousel[data-show-wind='0'] .wind-row {
   display: none;
 }
@@ -493,15 +488,15 @@ main {
   display: none;
 }
 
-/* Wind values block (stacked) */
+/* ----------------------------
+  Wind display helpers
+----------------------------- */
 .wind-values {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   line-height: 1.2;
 }
-
-/* Wind direction (arrow + deg) */
 .wind-dir {
   display: inline-flex;
   align-items: center;
@@ -509,7 +504,6 @@ main {
   font-size: 12px;
   color: var(--muted);
 }
-
 /* Wind arrow rotated via CSS variable --deg */
 .wind-arrow {
   width: 14px;
@@ -519,7 +513,9 @@ main {
   transition: transform 0.2s linear;
 }
 
-/* A11y helper (visually hidden text) */
+/* ----------------------------
+  A11y helper
+----------------------------- */
 .sr-only {
   position: absolute !important;
   width: 1px;
@@ -532,7 +528,9 @@ main {
   border: 0;
 }
 
-/* Skeletons (generic shimmer) */
+/* ----------------------------
+  Skeletons (generic shimmer)
+----------------------------- */
 .skel {
   position: relative;
   overflow: hidden;
@@ -560,7 +558,6 @@ main {
     transform: translateX(100%);
   }
 }
-
 /* Common blocks */
 .skel-line {
   height: 12px;
@@ -577,12 +574,10 @@ main {
 .skel-gap > * + * {
   margin-top: 8px;
 }
-
 /* Chart placeholder size (matches chart-wrap) */
 .skel-chart {
   height: 220px;
 }
-
 /* Hour-card skeleton layout */
 .skel-hour {
   padding: 12px;
@@ -603,7 +598,6 @@ main {
   width: 60%;
   margin-left: auto;
 }
-
 /* Daily-card skeleton layout */
 .skel-day {
   padding: 12px;
@@ -618,8 +612,7 @@ main {
   width: 70%;
   margin-left: auto;
 }
-
-/* Respect reduced motion */
+/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .skel::after {
     animation: none;
