@@ -12,9 +12,10 @@
 
   {# Display info alert when no data available and no error #}
   {% if (current is not defined or not current)
-  and (hours_today is not defined or hours_today is empty)
-  and (days is not defined or days is empty)
-  and (error is not defined or not error) %}
+    and (hours_today is not defined or hours_today is empty)
+    and (days is not defined or days is empty)
+    and (error is not defined or not error)
+  %}
     {% include 'components/_alert.html.twig' with {
       type: 'info',
       title: 'Aucune donnée pour le moment',
