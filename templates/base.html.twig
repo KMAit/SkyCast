@@ -16,11 +16,9 @@
       <link rel="stylesheet" href="{{ asset('styles/app.css') }}">
   </head>
   <body>
-
       <div class="splash-screen">
-  <img src="{{ asset('logo.svg') }}" alt="Logo SkyCast" class="splash-logo" />
-</div>
-
+        <img src="{{ asset('logo.svg') }}" alt="Logo SkyCast" class="splash-logo" />
+      </div>
 
       {# Externalized SVG sprite to keep the layout template lightweight #}
       {% include 'components/_icons.svg.twig' %}

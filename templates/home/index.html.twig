@@ -1,8 +1,28 @@
 {% extends 'base.html.twig' %}
 
 {% block body %}
+  {# Display error alert if backend or fetch failed #}
+  {% if error is defined and error %}
+    {% include 'components/_alert.html.twig' with {
+      type: 'error',
+      title: 'Une erreur est survenue',
+      message: error ~ '<br><a class="btn btn-secondary" href="' ~ path('home') ~ '">Réessayer</a>'
+    } %}
+  {% endif %}
 
-  {# Hero section with search form #}
+  {# Display info alert when no data available and no error #}
+  {% if (current is not defined or not current)
+  and (hours_today is not defined or hours_today is empty)
+  and (days is not defined or days is empty)
+  and (error is not defined or not error) %}
+    {% include 'components/_alert.html.twig' with {
+      type: 'info',
+      title: 'Aucune donnée pour le moment',
+      message: 'Essayez une autre ville ou vérifiez votre connexion.'
+    } %}
+  {% endif %}
+
+  {# Hero section — Search bar #}
   <section class="hero">
     <div class="card">
       <h1 class="h1">Prévisions météo locales</h1>
@@ -19,7 +39,7 @@
           />
         </div>
 
-        {# Hidden fields used by the geolocation flow #}
+        {# Hidden fields for geolocation support #}
         <input type="hidden" name="lat" id="geo-lat">
         <input type="hidden" name="lon" id="geo-lon">
 
@@ -34,7 +54,7 @@
 
       <div id="geo-message" class="geo-message muted small"></div>
 
-      {# Location banner #}
+      {# Display location or coordinates #}
       {% if place %}
         <p class="muted small">
           Lieu : {{ place.name }}{% if place.admin1 %} ({{ place.admin1 }}){% endif %}{% if place.country %}, {{ place.country }}{% endif %}
@@ -45,18 +65,14 @@
         </p>
       {% endif %}
 
-      {# Display backend error if any #}
-      {% if error is defined and error %}
-        <div class="geo-message error small">{{ error }}</div>
-      {% endif %}
-
       <p class="muted small">Astuce : appuyez sur Entrée pour lancer la recherche.</p>
     </div>
 
-        {% include 'components/_hourly_chart.html.twig' with {hours: hours} %}
+    {# Hourly temperature chart #}
+    {% include 'components/_hourly_chart.html.twig' with {hours: hours} %}
   </section>
 
-  {# Current conditions — qualitative context (icon + label + timestamp) #}
+  {# Current conditions — icon + qualitative description #}
   {% if current is defined and current %}
     <section class="card section-gap">
       <h2 class="h2">
@@ -71,14 +87,14 @@
     </section>
   {% endif %}
 
-
-  {# Current data — quantitative KPIs (complement to current conditions) #}
+  {# Current quantitative data — main KPIs #}
   <section class="card section-gap">
     <h2 class="h2">
       <svg class="icon" aria-hidden="true"><use href="#icon-thermo"/></svg>
       <span>Données actuelles</span>
     </h2>
 
+    {# Unit toggle — °C / °F #}
     <div class="toggle-bar">
       <label class="switch" aria-label="Basculer entre Celsius et Fahrenheit">
         <span class="switch-label">°C</span>
@@ -88,13 +104,14 @@
       </label>
     </div>
 
-
+    {# Grid with metrics #}
     <div class="grid grid-4" style="margin-top:10px">
       {% if current is defined and current %}
+        {# Temperature #}
         {% if current.temperature is not null %}
           {% set c = current.temperature %}
           {% set display = c|number_format(1, '.', '') ~ '°C' %}
-          {% set html = '<span class="js-temp" data-temp-c="' ~ c ~ '">' ~ display ~ '</span>' %}
+          {% set html = '<span class=\"js-temp\" data-temp-c=\"' ~ c ~ '\">' ~ display ~ '</span>' %}
           {% include 'components/_weather_card.html.twig' with {
             icon: 'icon-thermo',
             title: 'Température',
@@ -102,37 +119,46 @@
           } %}
         {% endif %}
 
-        {# Wind (km/h) + directional arrows #}
+        {# Wind (km/h + direction) #}
         {% set wind_k = current.windspeed is not null ? current.windspeed : null %}
         {% set wind_deg = current.winddirection is not null ? current.winddirection : null %}
         {% set wind_html %}
-        {% if wind_k is not null %}
+          {% if wind_k is not null %}
             <strong>{{ wind_k|number_format(0, '.', '') }} km/h</strong>
             {% if wind_deg is not null %}
               <svg class="wind-arrow" style="--deg: {{ wind_deg }}deg" aria-hidden="true" viewBox="0 0 24 24">
-                <!-- Simple upward arrow; rotation applies via CSS variable -->
                 <path d="M12 3 L8 9 H11 V21 H13 V9 H16 Z" fill="currentColor"/>
               </svg>
               <span class="small muted">{{ wind_deg }}°</span>
             {% endif %}
-          {% else %}—{% endif %}
+          {% else %}
+            —
+          {% endif %}
         {% endset %}
         {% include 'components/_weather_card.html.twig' with {
           icon: 'icon-wind',
           title: 'Vent',
           content: wind_html
-          } %}
+        } %}
 
-        {% include 'components/_weather_card.html.twig' with {icon: 'icon-drop', title: 'Humidité', content: (current.humidity is not null ? (current.humidity|number_format(0, '.', '') ~ '%') : '—')} %}
-        {% include 'components/_weather_card.html.twig' with {icon: 'icon-sun', title: 'Indice UV', content: (current.uv_index is not null ? current.uv_index|number_format(1, '.', '') : '—')} %}
+        {# Humidity + UV index #}
+        {% include 'components/_weather_card.html.twig' with {
+          icon: 'icon-drop',
+          title: 'Humidité',
+          content: (current.humidity is not null ? (current.humidity|number_format(0, '.', '') ~ '%') : '—')
+        } %}
+        {% include 'components/_weather_card.html.twig' with {
+          icon: 'icon-sun',
+          title: 'Indice UV',
+          content: (current.uv_index is not null ? current.uv_index|number_format(1, '.', '') : '—')
+        } %}
       {% endif %}
     </div>
   </section>
 
-  {# Hourly forecast — whole-day carousel #}
+  {# Hourly forecast carousel (today) #}
   {% include 'components/_forecast_hourly_carousel.html.twig' with {hours_today: hours_today} %}
 
   {# Daily forecast (7 days) #}
   {% include 'components/_forecast_daily.html.twig' with {days: days} %}
-
 {% endblock %}

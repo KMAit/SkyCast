@@ -1,0 +1,27 @@
+{# Simple alert component
+  Props:
+  - type: "error" | "info" | "success" (default: "info")
+  - title: string (optional)
+  - message: string (HTML allowed if you pass |raw)
+  - action_label: string (optional)
+  - action_url: string (optional)
+#}
+{% set t = type|default('info') %}
+
+<div class="alert alert-{{ t }}" role="status">
+  {% if title is defined and title %}
+    <strong class="alert-title">{{ title }}</strong>
+  {% endif %}
+
+  {% if message is defined and message %}
+    <div class="alert-body">
+      {{ message|raw }}
+    </div>
+  {% endif %}
+
+  {% if action_url is defined and action_label is defined %}
+    <div class="alert-actions" style="margin-top:12px;">
+      <a class="btn btn-secondary" href="{{ action_url }}">{{ action_label }}</a>
+    </div>
+  {% endif %}
+</div>

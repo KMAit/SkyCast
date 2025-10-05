@@ -1,0 +1,18 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+  <section class="card section-gap">
+    <h2 class="h2">
+      <svg class="icon" aria-hidden="true"><use href="#icon-warning"/></svg>
+      <span>Erreur inattendue</span>
+    </h2>
+
+    {% include 'components/_alert.html.twig' with {
+      type: 'error',
+      title: 'Ciel couvert…',
+      message: 'Une erreur est survenue pendant le chargement de la page.',
+      action_label: 'Retour à l’accueil',
+      action_url: path('home')
+    } %}
+  </section>
+{% endblock %}

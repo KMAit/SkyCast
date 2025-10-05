@@ -1,0 +1,18 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+  <section class="card section-gap">
+    <h2 class="h2">
+      <svg class="icon" aria-hidden="true"><use href="#icon-cloud-lightning"/></svg>
+      <span>Erreur interne du serveur (500)</span>
+    </h2>
+
+    {% include 'components/_alert.html.twig' with {
+      type: 'error',
+      title: 'Orage en approche…',
+      message: 'Un problème est survenu sur le serveur. Veuillez réessayer dans quelques instants.',
+      action_label: 'Réessayer',
+      action_url: path('home')
+    } %}
+  </section>
+{% endblock %}

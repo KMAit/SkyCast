@@ -674,8 +674,43 @@ main {
   transform: scale(0.9);
 }
 
+/* Alerts */
+.alert {
+  border-radius: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--divider);
+  background: rgba(0, 0, 0, 0.25);
+}
+.alert + .alert {
+  margin-top: 10px;
+}
+.alert-title {
+  display: block;
+  margin-bottom: 4px;
+}
+.alert-info {
+  border-color: rgba(111, 177, 255, 0.35);
+}
+.alert-success {
+  border-color: rgba(72, 199, 142, 0.35);
+}
+.alert-error {
+  border-color: rgba(255, 107, 107, 0.45);
+  background: rgba(255, 107, 107, 0.08);
+}
+.alert .btn {
+  margin-top: 8px;
+}
+.alert-actions {
+  margin-top: 16px;
+  text-align: center;
+}
+.alert .btn {
+  display: inline-block;
+}
+
 /* =========================
-   Responsive
+  Responsive
    ========================= */
 
 /* ≤ 900px : tablets / large phones */
