@@ -1,8 +1,6 @@
 // SkyCast — Hourly temperature chart (Chart.js)
 (function () {
   // --- Helpers --------------------------------------------------------------
-
-  /** Safely extract labels (HH:mm) and numeric temperatures (°C) from canvas dataset. */
   function parseHoursFromCanvas(canvas) {
     try {
       const raw = canvas.getAttribute('data-hours');
@@ -31,17 +29,14 @@
     }
   }
 
-  /** Celsius → Fahrenheit. */
   function cToF(c) {
     return (c * 9) / 5 + 32;
   }
 
-  /** Normalize any input to 'C' or 'F'. */
   function normalizeUnit(u) {
     return (u || 'C').toString().trim().toUpperCase() === 'F' ? 'F' : 'C';
   }
 
-  /** Chart.js options (axis/tooltip text depends on unit). */
   function buildOptions(unit) {
     const U = normalizeUnit(unit);
     return {
@@ -53,40 +48,25 @@
       interaction: { mode: 'index', intersect: false },
       elements: { point: { hoverRadius: 3, hitRadius: 6 } },
       scales: {
-        x: {
-          grid: { display: false },
-          ticks: { color: '#ffffff' },
-        },
+        x: { grid: { display: false }, ticks: { color: '#ffffff' } },
         y: {
           grid: { display: true, color: 'rgba(255, 255, 255, 0.15)' },
-          ticks: {
-            color: '#ffffff',
-            callback: (v) => `${v}°${U}`,
-          },
+          ticks: { color: '#ffffff', callback: (v) => `${v}°${U}` },
         },
       },
       plugins: {
         legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => ` ${ctx.parsed.y}°${U}`,
-          },
-        },
+        tooltip: { callbacks: { label: (ctx) => ` ${ctx.parsed.y}°${U}` } },
       },
     };
   }
 
-  // --- Internal state (no DOM mutation on canvas object) --------------------
-
+  // --- Internal state -------------------------------------------------------
   const INST = new WeakMap(); // canvas -> Chart instance
-  const CELSIUS = new WeakMap(); // canvas -> original °C values (array)
-  const CURUNIT = new WeakMap(); // canvas -> current displayed unit ('C'|'F')
+  const CELSIUS = new WeakMap(); // canvas -> original °C values
+  const CURUNIT = new WeakMap(); // canvas -> 'C' | 'F'
 
-  // --- Core -----------------------------------------------------------------
-
-  /** Create the chart in °C once, then optionally flip to °F (no re-creation). */
   function makeChart(canvas, unit) {
-    // Prevent double init if script gets executed twice
     if (INST.get(canvas)) return INST.get(canvas);
 
     const { labels, valuesC } = parseHoursFromCanvas(canvas);
@@ -116,13 +96,10 @@
     CURUNIT.set(canvas, 'C');
 
     const U = normalizeUnit(unit);
-    if (U === 'F') {
-      updateChartUnit(canvas, 'F');
-    }
+    if (U === 'F') updateChartUnit(canvas, 'F');
     return chart;
   }
 
-  /** Update the existing chart to display in °C or °F (no destroy / recreate). */
   function updateChartUnit(canvas, unit) {
     const chart = INST.get(canvas);
     const baseC = CELSIUS.get(canvas);
@@ -130,41 +107,60 @@
 
     const U = normalizeUnit(unit);
     const prev = CURUNIT.get(canvas);
-    if (prev === U) return; // nothing to do
+    if (prev === U) return;
 
     chart.data.datasets[0].data =
       U === 'F' ? baseC.map((c) => (c == null ? null : cToF(c))) : baseC.slice();
-
     chart.data.datasets[0].label = `Température (°${U})`;
     chart.options.scales.y.ticks.callback = (v) => `${v}°${U}`;
-    chart.options.plugins.tooltip.callbacks = {
-      label: (ctx) => ` ${ctx.parsed.y}°${U}`,
-    };
+    chart.options.plugins.tooltip.callbacks = { label: (ctx) => ` ${ctx.parsed.y}°${U}` };
 
     CURUNIT.set(canvas, U);
     chart.update();
   }
 
   // --- Wiring ---------------------------------------------------------------
+  function getInitialUnit() {
+    // 1) Core store (nouveau): skycast:unit
+    const fromCore = window.SkyCast?.store?.get('unit', 'C');
+    if (fromCore) return normalizeUnit(fromCore);
+    // 2) Legacy fallback (ancien): localStorage 'skycast-unit'
+    const legacy = localStorage.getItem('skycast-unit');
+    return normalizeUnit(legacy || 'C');
+  }
 
-  document.addEventListener('DOMContentLoaded', () => {
+  function onUnitChange(e) {
+    const u = normalizeUnit(e?.detail?.unit);
+    const canvas = document.getElementById('hourlyChart');
+    if (!canvas) return;
+    updateChartUnit(canvas, u);
+  }
+
+  (
+    window.SkyCast?.ready ||
+    ((fn) => {
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', fn, { once: true });
+      } else {
+        fn();
+      }
+    })
+  )(() => {
     const canvas = document.getElementById('hourlyChart');
     if (!canvas || !('Chart' in window)) return;
 
-    const stored = localStorage.getItem('skycast-unit'); // 'c'|'f' (any case)
-    const initialUnit = normalizeUnit(stored);
-
-    // Create once in °C, then convert if needed
+    const initialUnit = getInitialUnit(); // => 'C' par défaut
     makeChart(canvas, initialUnit);
 
-    // React to the app-wide unit toggle custom event
-    window.addEventListener('unit-change', (e) => {
-      const u = normalizeUnit(e?.detail?.unit);
-      updateChartUnit(canvas, u);
-    });
+    // Écoute des changements d’unité
+    if (window.SkyCast?.events) {
+      window.SkyCast.events.on('unit-change', onUnitChange);
+    } else {
+      window.addEventListener('unit-change', onUnitChange);
+    }
   });
 
-  // Expose a public hook for unit toggle module
+  // Hook public
   window.SkyCast = window.SkyCast || {};
   window.SkyCast.updateHourlyChartUnit = function (unit) {
     const canvas = document.getElementById('hourlyChart');

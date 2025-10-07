@@ -1,41 +1,36 @@
-// SkyCast - Theme switcher (persisted in localStorage)
+// SkyCast — Theme switcher (refactor using SkyCast core)
+SkyCast.ready(() => {
+  const THEME_KEY = 'theme';
+  const THEMES = ['theme-sky', 'theme-nature', 'theme-sunset'];
 
-const THEME_KEY = 'skycast-theme';
-const THEMES = ['theme-sky', 'theme-nature', 'theme-sunset'];
-
-function applyTheme(theme) {
   const root = document.documentElement;
-  // remove existing theme classes
-  THEMES.forEach((t) => root.classList.remove(t));
-  // add chosen theme (fallback -> theme-nature)
-  root.classList.add(THEMES.includes(theme) ? theme : 'theme-nature');
-}
-
-function updateToggleUI(activeTheme) {
-  const buttons = document.querySelectorAll('.theme-toggle [data-theme]');
-  buttons.forEach((btn) => {
-    const isActive = btn.getAttribute('data-theme') === activeTheme;
-    btn.classList.toggle('is-active', isActive);
-    btn.setAttribute('aria-pressed', String(isActive));
-  });
-}
-
-function initTheme() {
-  const saved = localStorage.getItem(THEME_KEY) || 'theme-nature';
-  applyTheme(saved);
-  updateToggleUI(saved);
-
   const container = document.querySelector('.theme-toggle');
   if (!container) return;
+
+  function applyTheme(theme) {
+    THEMES.forEach((t) => root.classList.remove(t));
+    root.classList.add(THEMES.includes(theme) ? theme : 'theme-nature');
+  }
+
+  function updateToggleUI(activeTheme) {
+    const buttons = container.querySelectorAll('[data-theme]');
+    buttons.forEach((btn) => {
+      const isActive = btn.dataset.theme === activeTheme;
+      btn.classList.toggle('is-active', isActive);
+    });
+  }
+
+  const saved = SkyCast.store.get(THEME_KEY, 'theme-nature');
+  applyTheme(saved);
+  updateToggleUI(saved);
 
   container.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-theme]');
     if (!btn) return;
-    const theme = btn.getAttribute('data-theme');
+    const theme = btn.dataset.theme;
     applyTheme(theme);
     updateToggleUI(theme);
-    localStorage.setItem(THEME_KEY, theme);
+    SkyCast.store.set(THEME_KEY, theme);
+    SkyCast.events.emit('theme:changed', { theme });
   });
-}
-
-document.addEventListener('DOMContentLoaded', initTheme);
+});

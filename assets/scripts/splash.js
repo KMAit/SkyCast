@@ -1,20 +1,31 @@
-// SkyCast — Hide splash overlay after first paint
+// SkyCast — Splash screen fade-out logic
 (function () {
+  /** Hide splash overlay once the page has fully loaded. */
   function hideSplash() {
-    const node = document.querySelector('.splash-screen');
-    if (!node) return;
-    // Petite latence pour éviter un flash
+    const splash = document.querySelector('.splash-screen');
+    if (!splash) return;
+
+    // Small delay to avoid white flash before first paint
     setTimeout(() => {
-      node.classList.add('fade-out'); // correspond à ton CSS .splash-screen.fade-out
-      // Optionnel: retirer le noeud après l'anim (600 ms comme en CSS)
-      setTimeout(() => node.remove(), 650);
+      splash.classList.add('fade-out'); // triggers CSS transition
+      // Remove node after the fade duration (≈600ms)
+      setTimeout(() => splash.remove(), 650);
     }, 300);
   }
 
-  // Utiliser 'load' pour s'assurer que la première frame est peinte
-  if (document.readyState === 'complete') {
-    hideSplash();
+  /** Initialize splash handling on window load. */
+  function initSplash() {
+    if (document.readyState === 'complete') {
+      hideSplash();
+    } else {
+      window.addEventListener('load', hideSplash, { once: true });
+    }
+  }
+
+  // Run once DOM and SkyCast core are ready
+  if (window.SkyCast && typeof SkyCast.ready === 'function') {
+    SkyCast.ready(initSplash);
   } else {
-    window.addEventListener('load', hideSplash, { once: true });
+    document.addEventListener('DOMContentLoaded', initSplash);
   }
 })();
