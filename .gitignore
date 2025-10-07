@@ -6,15 +6,27 @@
 /.env.local.php
 /.env.*.local
 /phpunit.xml
+/phpunit.result.cache
 /.phpunit.cache/
 /node_modules/
 assets/vendor/
 
-### VSCode (ignore tout le dossier .vscode) ###
-.vscode/
+# Symfony UX / Stimulus
+assets/controllers.json
+
+### Tests ###
+/coverage/
+/reports/
+/test-output/
+/.phpunit.cache/
+/phpunit.xml
+/phpunit.xml.dist
+/phpunit.result.cache
 
 ### Logs ###
 /*.log
+/var/log/
+/var/cache/test/
 
 ### Cache ###
 /.cache/
@@ -22,5 +34,15 @@ assets/vendor/
 /yarn-error.log
 /pnpm-debug.log
 
+### IDE ###
+.vscode/
+.idea/
+
+### Code style ###
+.php-cs-fixer.cache
+
 ### Assets compilés ###
 /public/assets/
+
+### CI ###
+/.github/workflows/*.tmp
