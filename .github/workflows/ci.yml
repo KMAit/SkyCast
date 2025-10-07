@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop, feature/**]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  build-and-lint:
+    name: PHP 8.2 • Lint & Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1) Checkout repository
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2) Setup PHP (extensions kept minimal)
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+          extensions: mbstring, intl, json, zip
+          ini-values: memory_limit=512M
+
+      # 3) Cache Composer dependencies
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer/files
+          key: composer-${{ runner.os }}-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            composer-${{ runner.os }}-
+
+      # 4) Install Composer dependencies (including dev tools like twigcs/php-cs-fixer)
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      # 5) PHP syntax check (fast fail)
+      - name: PHP lint (syntax)
+        run: |
+          find ./src -type f -name "*.php" -print0 | xargs -0 -n 1 -P 4 php -l
+
+      # 6) PHP CS Fixer (dry-run) — must NOT change files in CI
+      - name: PHP CS Fixer (dry run)
+        run: |
+          if [ -x vendor/bin/php-cs-fixer ]; then
+            vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.php --using-cache=no --dry-run --diff --allow-risky=yes
+          else
+            echo "php-cs-fixer not installed; skipping" && exit 0
+          fi
+
+      # 7) TwigCS (strict errors)
+      - name: TwigCS
+        run: |
+          if [ -x vendor/bin/twigcs ]; then
+            vendor/bin/twigcs --display=errors --severity error templates
+          else
+            echo "twigcs not installed; skipping" && exit 0
+          fi
+
+      # 8) Symfony console sanity checks
+      - name: Symfony console about (smoke check)
+        run: |
+          if [ -f bin/console ]; then
+            php bin/console about --env=prod
+          fi
