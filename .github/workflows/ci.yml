@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-and-lint:
-    name: PHP 8.2 • Lint & Tests
+    name: PHP 8.3 • Lint & Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -20,7 +20,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: '8.3'
           coverage: none
           extensions: mbstring, intl, json, zip
           ini-values: memory_limit=512M
