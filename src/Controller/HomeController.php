@@ -111,6 +111,10 @@ final class HomeController extends AbstractController
             }
         }
 
+        $hasError = !empty($error);
+        // noResults: no current, no hourly-today, no daily AND no error
+        $noResults = (empty($current) && empty($hoursToday) && empty($daily) && !$hasError);
+
         // --- Render
         return $this->render('home/index.html.twig', [
             'title'               => 'SkyCast - Votre météo simplifiée',
@@ -125,6 +129,8 @@ final class HomeController extends AbstractController
             'coords'              => $coords,
             'place'               => $place,
             'error'               => $error,
+            'has_error'           => $hasError,
+            'no_results'          => $noResults,
         ]);
     }
 

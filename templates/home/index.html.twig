@@ -10,12 +10,17 @@
     } %}
   {% endif %}
 
-  {# Display info alert when no data available and no error #}
-  {% if (current is not defined or not current)
-    and (hours_today is not defined or hours_today is empty)
-    and (days is not defined or days is empty)
-    and (error is not defined or not error)
-  %}
+  {# Error banner (if any) #}
+  {% if has_error %}
+    {% include 'components/_alert.html.twig' with {
+      type: 'error',
+      title: 'Une erreur est survenue',
+      message: error ~ '<br><a class="btn btn-secondary" href="' ~ path('home') ~ '">Réessayer</a>'
+    } %}
+  {% endif %}
+
+  {# Empty state (no data, no error) #}
+  {% if no_results %}
     {% include 'components/_alert.html.twig' with {
       type: 'info',
       title: 'Aucune donnée pour le moment',
