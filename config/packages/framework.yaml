@@ -3,6 +3,10 @@ framework:
   secret: '%env(APP_SECRET)%'
   annotations: false
   http_method_override: false
+  http_client:
+    default_options:
+      headers: { Accept: 'application/json' }
+      timeout: 2.0
   handle_all_throwables: true
   assets: ~
   asset_mapper:

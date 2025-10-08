@@ -11,13 +11,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
 /**
- * SkyCast landing page controller.
- *
- * Input modes:
- *  - GET /?city=Paris
- *  - GET /?lat=48.85&lon=2.35   (from geolocation)
- *
- * Renders the page with KPI cards and an hourly forecast slice.
+ * Renders the main SkyCast landing page with optional forecast data.
  */
 final class HomeController extends AbstractController
 {
@@ -27,28 +21,22 @@ final class HomeController extends AbstractController
     }
 
     /**
-     * Render the home page with optional forecast data (current, hourly, daily).
-     *
-     * @param Request $request HTTP request (reads 'city' or 'lat'/'lon' query params)
-     *
-     * @return Response Full HTML response
+     * Displays the home page with forecast data when available.
      */
     #[Route('/', name: 'home', methods: ['GET'])]
     public function index(Request $request): Response
     {
-        // --- Read query parameters
         $city = (string) $request->query->get('city', '');
         $lat  = $request->query->get('lat');
         $lon  = $request->query->get('lon');
 
-        // --- Defaults
         $forecast            = null;
         $error               = null;
         $place               = null;
         $coords              = null;
         $current_updated_ago = null;
 
-        // --- Fetch forecast from city or coordinates
+        // Fetch forecast using city or coordinates
         if ($city !== '') {
             $forecast = $this->weatherService->getForecastByCity($city, timezone: 'Europe/Paris', hours: 12);
             if ($forecast === null) {
@@ -66,7 +54,7 @@ final class HomeController extends AbstractController
             }
         }
 
-        // --- Normalize slices from forecast (defensive)
+        // Normalize forecast data
         $current    = is_array($forecast) ? ($forecast['current'] ?? null) : null;
         $hourly     = is_array($forecast) ? ($forecast['hourly'] ?? []) : [];
         $hoursToday = is_array($forecast) ? ($forecast['hours_today'] ?? []) : [];
@@ -74,8 +62,7 @@ final class HomeController extends AbstractController
         $place      = is_array($forecast) ? ($forecast['place'] ?? $place) : $place;
         $coords     = is_array($forecast) ? ($forecast['location'] ?? $coords) : $coords;
 
-        // --- KPI cards (temperature / wind / precip)
-        // Temperature and wind from current; precip label from first hourly slot if present.
+        // Prepare KPI cards (temperature, wind, precipitation)
         $cards = [
             'temperature'   => '—',
             'wind'          => '—',
@@ -91,7 +78,6 @@ final class HomeController extends AbstractController
             }
             if (!empty($forecast['current']['time'])) {
                 try {
-                    // Use same TZ as elsewhere to avoid inconsistencies
                     $tz                  = new \DateTimeZone('Europe/Paris');
                     $at                  = new \DateTimeImmutable((string) $forecast['current']['time'], $tz);
                     $now                 = new \DateTimeImmutable('now', $tz);
@@ -101,8 +87,8 @@ final class HomeController extends AbstractController
                 }
             }
         }
+
         if (!empty($hourly)) {
-            // Prefer readable label (e.g. "Aucune pluie", "Pluie modérée") from service
             $first = $hourly[0];
             if (isset($first['precip_label']) && $first['precip_label'] !== null) {
                 $cards['precipitation'] = $first['precip_label'];
@@ -111,11 +97,11 @@ final class HomeController extends AbstractController
             }
         }
 
-        $hasError = !empty($error);
-        // noResults: no current, no hourly-today, no daily AND no error
-        $noResults = (empty($current) && empty($hoursToday) && empty($daily) && !$hasError);
+        $searched  = ($city !== '' || ($lat !== null && $lon !== null));
+        $hasError  = !empty($error);
+        $noResults = $searched && (empty($current) && empty($hoursToday) && empty($daily) && !$hasError);
 
-        // --- Render
+        // Render final template
         return $this->render('home/index.html.twig', [
             'title'               => 'SkyCast - Votre météo simplifiée',
             'app_name'            => 'SkyCast',
@@ -123,9 +109,9 @@ final class HomeController extends AbstractController
             'current'             => $current,
             'current_updated_ago' => $current_updated_ago,
             'cards'               => $cards,
-            'hours'               => $hourly,      // used by the chart
-            'hours_today'         => $hoursToday,  // used by the carousel
-            'days'                => $daily,       // 7-day daily forecast
+            'hours'               => $hourly,
+            'hours_today'         => $hoursToday,
+            'days'                => $daily,
             'coords'              => $coords,
             'place'               => $place,
             'error'               => $error,
@@ -135,8 +121,7 @@ final class HomeController extends AbstractController
     }
 
     /**
-     * Humanize a timestamp difference into short French text.
-     * Examples: "à l’instant", "il y a 2 min", "il y a 3 h", "il y a 5 j".
+     * Converts a timestamp difference into a short French human-readable text.
      */
     private function humanizeAgo(\DateTimeImmutable $from, \DateTimeImmutable $to): string
     {

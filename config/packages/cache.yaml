@@ -1,4 +1,12 @@
 framework:
   cache:
+    # Use Redis as the default cache backend
     app: cache.adapter.redis
     default_redis_provider: '%env(REDIS_URL)%'
+
+    # Define a dedicated Redis pool used by WeatherService
+    pools:
+      cache.weather:
+        adapter: cache.adapter.redis
+        provider: '%env(REDIS_URL)%'
+        default_lifetime: 600
