@@ -63,9 +63,25 @@
                 {% endif %}
               </div>
 
-
-
               <div><strong>UV max</strong> : {{ d.uv_index_max is not null ? d.uv_index_max|number_format(1, '.', '') : '—' }}</div>
+
+              <div>
+                <strong>Vent</strong> :
+                {% if d.wind_speed is not null %}
+                  {{ d.wind_speed|number_format(0) }} km/h
+                {% else %}
+                  —
+                {% endif %}
+              </div>
+
+              <div>
+                <strong>Humidité</strong> :
+                {% if d.avg_humidity is not null %}
+                  {{ d.avg_humidity|number_format(0) }} %
+                {% else %}
+                  —
+                {% endif %}
+              </div>
             </div>
 
             {# Right column (precip + state). Show readable precip only when > 0; keep mm in tooltip #}

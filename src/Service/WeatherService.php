@@ -311,6 +311,19 @@ class WeatherService
 
             $dCount = count($dDates);
             for ($i = 0; $i < $dCount; ++$i) {
+                // Compute daily averages from hourly data
+                $dayStart = new \DateTimeImmutable($dDates[$i]);
+                $nextDay  = $dayStart->modify('+1 day');
+
+                $indices = array_keys(array_filter($times, fn ($t) => $t >= $dayStart->format('Y-m-d\T00:00') && $t < $nextDay->format('Y-m-d\T00:00')
+                ));
+
+                $humidValues = array_map(fn ($idx) => $humidities[$idx] ?? null, $indices);
+                $windValues  = array_map(fn ($idx) => $windspeeds[$idx] ?? null, $indices);
+
+                $avgHumidity = $this->average($humidValues);
+                $avgWind     = $this->average($windValues);
+
                 $code = isset($wcode[$i]) ? (int) $wcode[$i] : null;
                 $map  = $this->mapWeatherCode($code);
                 $mm   = isset($precSum[$i]) ? (float) $precSum[$i] : null;
@@ -325,6 +338,8 @@ class WeatherService
                     'icon'         => $map['icon'],
                     'label'        => $map['label'],
                     'uv_index_max' => isset($uviMaxDaily[$i]) ? (float) $uviMaxDaily[$i] : null,
+                    'avg_humidity' => $avgHumidity ?? null,
+                    'wind_speed'   => $avgWind     ?? null,
                 ];
             }
         }
@@ -680,5 +695,15 @@ class WeatherService
         }
 
         return '';
+    }
+
+    private function average(array $values): ?float
+    {
+        $filtered = array_filter($values, fn ($v) => $v !== null);
+        if (!$filtered) {
+            return null;
+        }
+
+        return array_sum($filtered) / count($filtered);
     }
 }
