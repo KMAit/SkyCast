@@ -18,6 +18,12 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  */
 final class HomeControllerTest extends WebTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        self::assertSame('test', $_SERVER['APP_ENV'] ?? 'undefined', 'Kernel must run in test environment.');
+    }
+
     #[Test]
     public function homepageRendersKpisWithStubbedDependencies(): void
     {

@@ -9,16 +9,19 @@ use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
- * Weather data provider using Open-Meteo public APIs.
+ * Small wrapper around Open-Meteo APIs.
  *
  * Responsibilities:
- *  - Geocode city names to coordinates
- *  - Fetch current, hourly, and daily forecasts
- *  - Handle caching with Redis-safe keys
+ *  - Geocode a city name to coordinates
+ *  - Fetch current + hourly forecast for given coordinates
+ *  - Fetch daily forecast (min/max temps, precipitation, weather code)
+ *  - Convenience: fetch forecast for a city (geocode + forecast)
  *
- * Requests are lightweight and cached conservatively.
+ * Notes:
+ *  - Cache keys are Redis-safe (no reserved characters).
+ *  - Timeouts are conservative to keep the app responsive under network hiccups.
  */
-final class WeatherService
+class WeatherService
 {
     /** Base URL for geocoding (city → coordinates). */
     private const GEO_BASE = 'https://geocoding-api.open-meteo.com/v1/search';
@@ -26,8 +29,8 @@ final class WeatherService
     /** Base URL for weather forecast. */
     private const METEO_BASE = 'https://api.open-meteo.com/v1/forecast';
 
-    private const PRECIP_EPSILON = 0.1;
-    private const DRIZZLE_CUTOFF = 0.5;
+    private const PRECIP_EPSILON = 0.1; // mm ~ “no rain”
+    private const DRIZZLE_CUTOFF = 0.5; // mm under which “drizzle” icon is shown
 
     public function __construct(
         private readonly HttpClientInterface $http,
@@ -36,7 +39,13 @@ final class WeatherService
     }
 
     /**
-     * Geocode a city name using Open-Meteo API with fallbacks.
+     * Geocode a city name using Open-Meteo.
+     *
+     * @param string $cityName Human-entered city name
+     * @param int    $count    Max results to fetch (default 1)
+     * @param string $language Output language (e.g. "fr")
+     *
+     * @return array|null Normalized first match or null when no result
      */
     public function geocodeCity(string $cityName, int $count = 1, string $language = 'fr'): ?array
     {
@@ -48,7 +57,7 @@ final class WeatherService
         $cacheKey   = $this->cacheKey('geocode', $language, (string) $count, $normalized);
 
         try {
-            // Primary call: normalized city name in requested language
+            // 1st try: normalized, fr (cached)
             $payload = $this->cache->get($cacheKey, function (ItemInterface $item) use ($normalized, $count, $language) {
                 $item->expiresAfter(86400);
                 $response = $this->http->request('GET', self::GEO_BASE, [
@@ -68,9 +77,8 @@ final class WeatherService
                 return $response->toArray(false);
             });
 
-            // Fallbacks if empty results
             if (!isset($payload['results'][0])) {
-                // Try original casing, same language
+                // 2nd try: original case, same language (uncached small call)
                 $response2 = $this->http->request('GET', self::GEO_BASE, [
                     'query' => [
                         'name'     => trim($cityName),
@@ -89,7 +97,7 @@ final class WeatherService
                 if (isset($payload2['results'][0])) {
                     $payload = $payload2;
                 } else {
-                    // Try English as a last resort
+                    // 3rd try: English fallback (uncached small call)
                     $response3 = $this->http->request('GET', self::GEO_BASE, [
                         'query' => [
                             'name'     => trim($cityName),
@@ -109,7 +117,6 @@ final class WeatherService
                         $hint = $this->extractApiError(is_array($payload) ? $payload : []);
                         throw new \DomainException('City not found: '.$cityName.$hint);
                     }
-
                     $payload = $payload3;
                 }
             }
@@ -119,19 +126,32 @@ final class WeatherService
             throw new \RuntimeException('Geocoding failed: '.$e->getMessage(), 0, $e);
         }
 
-        $first = $payload['results'][0];
+        $firstResult = $payload['results'][0];
 
         return [
-            'name'      => (string) ($first['name'] ?? $cityName),
-            'latitude'  => isset($first['latitude']) ? (float) $first['latitude'] : null,
-            'longitude' => isset($first['longitude']) ? (float) $first['longitude'] : null,
-            'country'   => (string) ($first['country'] ?? ''),
-            'admin1'    => (string) ($first['admin1'] ?? ''),
+            'name'      => (string) ($firstResult['name'] ?? $cityName),
+            'latitude'  => isset($firstResult['latitude']) ? (float) $firstResult['latitude'] : null,
+            'longitude' => isset($firstResult['longitude']) ? (float) $firstResult['longitude'] : null,
+            'country'   => (string) ($firstResult['country'] ?? ''),
+            'admin1'    => (string) ($firstResult['admin1'] ?? ''),
         ];
     }
 
     /**
-     * Fetch forecast data (current, hourly, daily) for given coordinates.
+     * Fetch current conditions, an hourly slice, and a 7-day daily forecast for given coordinates.
+     *
+     * @param float  $latitude  Decimal degrees
+     * @param float  $longitude Decimal degrees
+     * @param string $timezone  IANA TZ (e.g. "Europe/Paris" or "auto")
+     * @param int    $hours     Number of hourly points to keep (default 12)
+     *
+     * @return array|null Forecast payload or null on failure.
+     *                    Keys:
+     *                    - location: [latitude, longitude]
+     *                    - current:  current weather data or null
+     *                    - hourly:   list of rows {time, temperature, wind, gusts, precip, precip_probability, ...}
+     *                    - daily:    list of rows {date, tmin, tmax, precip_mm, weathercode}
+     *                    - hours_today: hourly rows within the current local day (00:00→23:00)
      */
     public function getForecastByCoords(
         float $latitude,
@@ -149,6 +169,7 @@ final class WeatherService
         try {
             /** @var array<string,mixed> $payload */
             $payload = $this->cache->get($cacheKey, function (ItemInterface $item) use ($latitude, $longitude, $timezone) {
+                // Weather data should be fresh but not real-time → cache for 10 minutes
                 $item->expiresAfter(600);
 
                 $response = $this->http->request('GET', self::METEO_BASE, [
@@ -170,22 +191,25 @@ final class WeatherService
             return null;
         }
 
-        // Guard: minimal hourly arrays must exist
+        // Guard: hourly arrays must exist
         if (!isset($payload['hourly']['time'], $payload['hourly']['temperature_2m'])) {
             return null;
         }
 
-        // Raw arrays
+        // Extract hourly raw arrays (defensive with defaults)
         $times          = $payload['hourly']['time'];
-        $temperatures   = $payload['hourly']['temperature_2m']       ?? [];
-        $windspeeds     = $payload['hourly']['wind_speed_10m']       ?? [];
-        $precipitations = $payload['hourly']['precipitation']        ?? [];
-        $weathercodes   = $payload['hourly']['weathercode']          ?? [];
-        $humidities     = $payload['hourly']['relative_humidity_2m'] ?? [];
-        $uvIndexes      = $payload['hourly']['uv_index']             ?? [];
-        $winddirs       = $payload['hourly']['winddirection_10m']    ?? [];
+        $temperatures   = $payload['hourly']['temperature_2m']            ?? [];
+        $apparentTemps  = $payload['hourly']['apparent_temperature']      ?? [];
+        $windspeeds     = $payload['hourly']['wind_speed_10m']            ?? [];
+        $windgusts      = $payload['hourly']['wind_gusts_10m']            ?? [];
+        $precipitations = $payload['hourly']['precipitation']             ?? [];
+        $precipProb     = $payload['hourly']['precipitation_probability'] ?? [];
+        $weathercodes   = $payload['hourly']['weathercode']               ?? [];
+        $humidities     = $payload['hourly']['relative_humidity_2m']      ?? []; // %
+        $uvIndexes      = $payload['hourly']['uv_index']                  ?? []; // 0..11+
+        $winddirs       = $payload['hourly']['winddirection_10m']         ?? [];
 
-        // Current block
+        // Current block (derive icon/label from weather code when possible)
         $currentWeather = $payload['current_weather'] ?? null;
         $current        = null;
 
@@ -195,28 +219,49 @@ final class WeatherService
 
             $curHumidity = null;
             $curUvi      = null;
+            $curGusts    = null;
+            $curPrecProb = null;
+            $curFeels    = null;
 
-            if (!empty($payload['current_weather']['time'])) {
-                $curIdx      = $this->findStartIndex($times, (string) $payload['current_weather']['time'], $timezone);
-                $curHumidity = isset($humidities[$curIdx]) ? (float) $humidities[$curIdx] : null;
-                $curUvi      = isset($uvIndexes[$curIdx]) ? (float) $uvIndexes[$curIdx] : null;
+            if (!empty($currentWeather['time'])) {
+                $curIdx = $this->findStartIndex($times, (string) $currentWeather['time'], $timezone);
+
+                if ($curIdx !== null) {
+                    $curHumidity = isset($humidities[$curIdx]) ? (float) $humidities[$curIdx] : null;
+                    $curUvi      = isset($uvIndexes[$curIdx]) ? (float) $uvIndexes[$curIdx] : null;
+                    $curGusts    = isset($windgusts[$curIdx]) ? (float) $windgusts[$curIdx] : null;
+                    $curPrecProb = isset($precipProb[$curIdx]) ? (float) $precipProb[$curIdx] : null;
+
+                    // Prefer API apparent_temperature when present; otherwise compute.
+                    $apiApp = isset($apparentTemps[$curIdx]) ? (float) $apparentTemps[$curIdx] : null;
+                    if ($apiApp !== null) {
+                        $curFeels = $apiApp;
+                    } else {
+                        $curTemp  = isset($currentWeather['temperature']) ? (float) $currentWeather['temperature'] : null;
+                        $curWind  = isset($currentWeather['windspeed']) ? (float) $currentWeather['windspeed'] : null; // km/h
+                        $curFeels = $this->computeFeelsLike($curTemp, $curWind, $curHumidity);
+                    }
+                }
             }
 
             $current = [
-                'temperature'   => isset($currentWeather['temperature']) ? (float) $currentWeather['temperature'] : null,
-                'windspeed'     => isset($currentWeather['windspeed']) ? (float) $currentWeather['windspeed'] : null,
-                'winddirection' => isset($currentWeather['winddirection']) ? (int) $currentWeather['winddirection'] : null,
-                'time'          => (string) ($currentWeather['time'] ?? ''),
-                'is_day'        => isset($currentWeather['is_day']) ? (int) $currentWeather['is_day'] : null,
-                'weathercode'   => $cCode,
-                'icon'          => $cMap['icon'],
-                'label'         => $cMap['label'],
-                'humidity'      => $curHumidity, // %
-                'uv_index'      => $curUvi,      // 0..11+
+                'temperature'        => isset($currentWeather['temperature']) ? (float) $currentWeather['temperature'] : null,
+                'windspeed'          => isset($currentWeather['windspeed']) ? (float) $currentWeather['windspeed'] : null,
+                'winddirection'      => isset($currentWeather['winddirection']) ? (int) $currentWeather['winddirection'] : null,
+                'gusts'              => $curGusts,           // km/h
+                'time'               => (string) ($currentWeather['time'] ?? ''),
+                'is_day'             => isset($currentWeather['is_day']) ? (int) $currentWeather['is_day'] : null,
+                'weathercode'        => $cCode,
+                'icon'               => $cMap['icon'],
+                'label'              => $cMap['label'],
+                'humidity'           => $curHumidity,        // %
+                'uv_index'           => $curUvi,             // 0..11+
+                'precip_probability' => $curPrecProb,        // %
+                'feels_like'         => $curFeels,           // °C
             ];
         }
 
-        // Rolling window for hourly slice starting at "now" index
+        // Rolling $hours window starting at current (timezone-safe)
         $startIndex = 0;
         if (!empty($payload['current_weather']['time'])) {
             $startIndex = $this->findStartIndex($times, (string) $payload['current_weather']['time'], $timezone);
@@ -231,22 +276,30 @@ final class WeatherService
             $prec  = isset($precipitations[$idx]) ? (float) $precipitations[$idx] : null;
             $state = $this->resolveHourlyState($code, $prec);
 
+            $tC   = isset($temperatures[$idx]) ? (float) $temperatures[$idx] : null;
+            $ws   = isset($windspeeds[$idx]) ? (float) $windspeeds[$idx] : null;
+            $rh   = isset($humidities[$idx]) ? (float) $humidities[$idx] : null;
+            $feel = isset($apparentTemps[$idx]) ? (float) $apparentTemps[$idx] : $this->computeFeelsLike($tC, $ws, $rh);
+
             $hourly[] = [
-                'time'          => (string) ($times[$idx] ?? ''),
-                'temperature'   => isset($temperatures[$idx]) ? (float) $temperatures[$idx] : null,
-                'wind'          => isset($windspeeds[$idx]) ? (float) $windspeeds[$idx] : null,
-                'precip'        => $prec,
-                'precip_label'  => $this->humanizePrecip($prec),
-                'weathercode'   => $code,
-                'icon'          => $state['icon'],
-                'label'         => $state['label'],
-                'humidity'      => isset($humidities[$idx]) ? (float) $humidities[$idx] : null,
-                'uv_index'      => isset($uvIndexes[$idx]) ? (float) $uvIndexes[$idx] : null,
-                'winddirection' => isset($winddirs[$idx]) ? (float) $winddirs[$idx] : null,
+                'time'               => (string) ($times[$idx] ?? ''),
+                'temperature'        => $tC,
+                'feels_like'         => $feel,
+                'wind'               => $ws,
+                'gusts'              => isset($windgusts[$idx]) ? (float) $windgusts[$idx] : null,
+                'precip'             => $prec,
+                'precip_probability' => isset($precipProb[$idx]) ? (float) $precipProb[$idx] : null,
+                'precip_label'       => $this->humanizePrecip($prec),
+                'weathercode'        => $code,
+                'icon'               => $state['icon'],
+                'label'              => $state['label'],
+                'humidity'           => $rh,
+                'uv_index'           => isset($uvIndexes[$idx]) ? (float) $uvIndexes[$idx] : null,
+                'winddirection'      => isset($winddirs[$idx]) ? (float) $winddirs[$idx] : null,
             ];
         }
 
-        // Daily (up to 7 days)
+        // Daily (7 days)
         $daily = [];
         if (isset($payload['daily']['time'])) {
             $dDates      = $payload['daily']['time']               ?? [];
@@ -277,7 +330,10 @@ final class WeatherService
         }
 
         return [
-            'location'    => ['latitude' => $latitude, 'longitude' => $longitude],
+            'location' => [
+                'latitude'  => $latitude,
+                'longitude' => $longitude,
+            ],
             'current'     => $current,
             'hourly'      => $hourly,
             'daily'       => $daily,
@@ -287,30 +343,43 @@ final class WeatherService
 
     /**
      * Convenience: geocode a city, then fetch its forecast.
+     *
+     * @param string $city     City name
+     * @param string $timezone IANA TZ (e.g. "Europe/Paris" or "auto")
+     * @param int    $hours    Number of hourly points to keep (default 12)
+     *
+     * @return array|null Same structure as getForecastByCoords(),
+     *                    with an extra "place" key describing the matched city
      */
     public function getForecastByCity(string $city, string $timezone = 'auto', int $hours = 12): ?array
     {
-        $geo = $this->geocodeCity($city);
-        if (!$geo || $geo['latitude'] === null || $geo['longitude'] === null) {
+        $geoData = $this->geocodeCity($city);
+        if (!$geoData || null === $geoData['latitude'] || null === $geoData['longitude']) {
             return null;
         }
 
-        $forecast = $this->getForecastByCoords($geo['latitude'], $geo['longitude'], $timezone, $hours);
-        if ($forecast === null) {
+        $forecast = $this->getForecastByCoords($geoData['latitude'], $geoData['longitude'], $timezone, $hours);
+        if (null === $forecast) {
             return null;
         }
 
         $forecast['place'] = [
-            'name'    => $geo['name'],
-            'country' => $geo['country'],
-            'admin1'  => $geo['admin1'],
+            'name'    => $geoData['name'],
+            'country' => $geoData['country'],
+            'admin1'  => $geoData['admin1'],
         ];
 
         return $forecast;
     }
 
-    // ------------------------- Internals -------------------------
-
+    /**
+     * Map Open-Meteo weather codes to an icon slug and a short human label.
+     * Icon slugs must exist in the SVG sprite (e.g. icon-sun, icon-cloud, …).
+     *
+     * @param int|null $code Open-Meteo weathercode
+     *
+     * @return array{icon:string,label:string}
+     */
     private function mapWeatherCode(?int $code): array
     {
         if ($code === null) {
@@ -323,17 +392,51 @@ final class WeatherService
             2  === $code => ['icon' => 'cloud-sun', 'label' => 'Partiellement nuageux'],
             3  === $code => ['icon' => 'cloud',     'label' => 'Couvert'],
             45 === $code,
-            48 === $code                 => ['icon' => 'fog',     'label' => 'Brouillard'],
-            ($code >= 51 && $code <= 57) => ['icon' => 'drizzle', 'label' => 'Bruine'],
-            ($code >= 61 && $code <= 67) => ['icon' => 'rain',    'label' => 'Pluie'],
-            ($code >= 71 && $code <= 77) => ['icon' => 'snow',    'label' => 'Neige'],
-            ($code >= 80 && $code <= 82) => ['icon' => 'rain',    'label' => 'Averses'],
-            ($code >= 85 && $code <= 86) => ['icon' => 'snow',    'label' => 'Averses de neige'],
-            ($code >= 95 && $code <= 99) => ['icon' => 'thunder', 'label' => 'Orage'],
+            48 === $code                 => ['icon' => 'fog',       'label' => 'Brouillard'],
+            ($code >= 51 && $code <= 57) => ['icon' => 'drizzle',   'label' => 'Bruine'],
+            ($code >= 61 && $code <= 67) => ['icon' => 'rain',      'label' => 'Pluie'],
+            ($code >= 71 && $code <= 77) => ['icon' => 'snow',      'label' => 'Neige'],
+            ($code >= 80 && $code <= 82) => ['icon' => 'rain',      'label' => 'Averses'],
+            ($code >= 85 && $code <= 86) => ['icon' => 'snow',      'label' => 'Averses de neige'],
+            ($code >= 95 && $code <= 99) => ['icon' => 'thunder',   'label' => 'Orage'],
             default                      => ['icon' => 'cloud-sun', 'label' => 'Indéterminé'],
         };
     }
 
+    /**
+     * Return the starting index in $times for the first slot >= $nowIso.
+     * Compares using DateTimeImmutable in the same timezone for robustness.
+     *
+     * @param list<string> $times  ISO 8601 hours (e.g. "2025-09-21T23:00")
+     * @param string       $nowIso ISO 8601 current time from payload["current_weather"]["time"]
+     * @param string       $tz     IANA timezone (e.g. "Europe/Paris")
+     */
+    private function findStartIndex(array $times, string $nowIso, string $tz = 'Europe/Paris'): int
+    {
+        try {
+            $now = new \DateTimeImmutable($nowIso, new \DateTimeZone($tz));
+        } catch (\Throwable) {
+            return 0;
+        }
+
+        foreach ($times as $i => $iso) {
+            try {
+                $slot = new \DateTimeImmutable((string) $iso, new \DateTimeZone($tz));
+            } catch (\Throwable) {
+                continue;
+            }
+            if ($slot >= $now) {
+                return $i;
+            }
+        }
+
+        // Fallback: last available block if none is >= now
+        return max(0, \count($times) - 1);
+    }
+
+    /**
+     * Convert precipitation amount (mm) to a human-friendly label.
+     */
     private function humanizePrecip(?float $mm): string
     {
         if ($mm === null || $mm <= 0.0) {
@@ -350,33 +453,28 @@ final class WeatherService
     }
 
     /**
-     * Return the starting index in $times for the first slot >= $nowIso (timezone-aware).
-     */
-    private function findStartIndex(array $times, string $nowIso, string $tz = 'Europe/Paris'): int
-    {
-        try {
-            $now = new \DateTimeImmutable($nowIso, new \DateTimeZone($tz));
-        } catch (\Throwable) {
-            return 0;
-        }
-
-        foreach ($times as $i => $iso) {
-            try {
-                $slot = new \DateTimeImmutable($iso, new \DateTimeZone($tz));
-            } catch (\Throwable) {
-                continue;
-            }
-            if ($slot >= $now) {
-                return $i;
-            }
-        }
-
-        // Fallback: last available index
-        return max(0, \count($times) - 1);
-    }
-
-    /**
-     * Build the list of hourly slots for the current local day (00:00 → 23:59).
+     * Build the list of hourly slots for the current local day (00:00 → 23:00),
+     * enriched with temperature, wind, gusts, precipitation, probabilities, icon/label, and flags.
+     *
+     * @param array<string,mixed> $payload Open-Meteo response
+     *
+     * @return list<array{
+     *   time: string,
+     *   temperature: float|null,
+     *   feels_like: float|null,
+     *   wind: float|null,
+     *   gusts: float|null,
+     *   precip: float|null,
+     *   precip_probability: float|null,
+     *   weathercode: int|null,
+     *   icon: string,
+     *   label: string,
+     *   humidity: float|null,
+     *   uv_index: float|null,
+     *   is_past: bool,
+     *   is_now: bool,
+     *   winddirection: float|null
+     * }>
      */
     private function buildHoursToday(array $payload, string $tz = 'Europe/Paris'): array
     {
@@ -385,13 +483,16 @@ final class WeatherService
         }
 
         $times          = $payload['hourly']['time'];
-        $temperatures   = $payload['hourly']['temperature_2m']       ?? [];
-        $windspeeds     = $payload['hourly']['wind_speed_10m']       ?? [];
-        $precipitations = $payload['hourly']['precipitation']        ?? [];
-        $weathercodes   = $payload['hourly']['weathercode']          ?? [];
-        $humidities     = $payload['hourly']['relative_humidity_2m'] ?? [];
-        $uvIndexes      = $payload['hourly']['uv_index']             ?? [];
-        $winddirs       = $payload['hourly']['winddirection_10m']    ?? [];
+        $temperatures   = $payload['hourly']['temperature_2m']            ?? [];
+        $apparentTemps  = $payload['hourly']['apparent_temperature']      ?? [];
+        $windspeeds     = $payload['hourly']['wind_speed_10m']            ?? [];
+        $windgusts      = $payload['hourly']['wind_gusts_10m']            ?? [];
+        $precipitations = $payload['hourly']['precipitation']             ?? [];
+        $precipProb     = $payload['hourly']['precipitation_probability'] ?? [];
+        $weathercodes   = $payload['hourly']['weathercode']               ?? [];
+        $humidities     = $payload['hourly']['relative_humidity_2m']      ?? [];
+        $uvIndexes      = $payload['hourly']['uv_index']                  ?? [];
+        $winddirs       = $payload['hourly']['winddirection_10m']         ?? [];
 
         $now        = new \DateTimeImmutable('now', new \DateTimeZone($tz));
         $startOfDay = $now->setTime(0, 0);
@@ -412,26 +513,66 @@ final class WeatherService
             $mm    = isset($precipitations[$i]) ? (float) $precipitations[$i] : null;
             $state = $this->resolveHourlyState($code, $mm);
 
+            $tC   = isset($temperatures[$i]) ? (float) $temperatures[$i] : null;
+            $ws   = isset($windspeeds[$i]) ? (float) $windspeeds[$i] : null;
+            $rh   = isset($humidities[$i]) ? (float) $humidities[$i] : null;
+            $feel = isset($apparentTemps[$i]) ? (float) $apparentTemps[$i] : $this->computeFeelsLike($tC, $ws, $rh);
+
             $out[] = [
-                'time'          => (string) $iso,
-                'temperature'   => isset($temperatures[$i]) ? (float) $temperatures[$i] : null,
-                'wind'          => isset($windspeeds[$i]) ? (float) $windspeeds[$i] : null,
-                'precip'        => $mm,
-                'precip_label'  => $this->humanizePrecip($mm),
-                'weathercode'   => $code,
-                'icon'          => $state['icon'],
-                'label'         => $state['label'],
-                'humidity'      => isset($humidities[$i]) ? (float) $humidities[$i] : null,
-                'uv_index'      => isset($uvIndexes[$i]) ? (float) $uvIndexes[$i] : null,
-                'is_past'       => $slot < $now,
-                'is_now'        => $slot->format('H') === $now->format('H'),
-                'winddirection' => isset($winddirs[$i]) ? (float) $winddirs[$i] : null,
+                'time'               => (string) $iso,
+                'temperature'        => $tC,
+                'feels_like'         => $feel,
+                'wind'               => $ws,
+                'gusts'              => isset($windgusts[$i]) ? (float) $windgusts[$i] : null,
+                'precip'             => $mm,
+                'precip_probability' => isset($precipProb[$i]) ? (float) $precipProb[$i] : null,
+                'precip_label'       => $this->humanizePrecip($mm),
+                'weathercode'        => $code,
+                'icon'               => $state['icon'],
+                'label'              => $state['label'],
+                'humidity'           => $rh, // %
+                'uv_index'           => isset($uvIndexes[$i]) ? (float) $uvIndexes[$i] : null, // 0..11+
+                'is_past'            => $slot < $now,
+                'is_now'             => $slot->format('H') === $now->format('H'),
+                'winddirection'      => isset($winddirs[$i]) ? (float) $winddirs[$i] : null,
             ];
         }
 
         return $out;
     }
 
+    /**
+     * Ensure the hourly query has enough horizon so that today is fully covered
+     * and include the variables required by the UI (gusts, precip prob, UV, apparent temp).
+     */
+    private function hourlyHorizonQuery(string $tz): array
+    {
+        return [
+            'timezone'        => $tz,
+            'current_weather' => 'true',
+            // hourly variables (include weathercode for icons/labels)
+            'hourly' => implode(',', [
+                'temperature_2m',
+                'apparent_temperature',
+                'precipitation',
+                'precipitation_probability',
+                'wind_speed_10m',
+                'wind_gusts_10m',
+                'winddirection_10m',
+                'weathercode',
+                'relative_humidity_2m',
+                'uv_index',
+            ]),
+            // daily variables
+            'daily' => 'temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode,uv_index_max',
+            // enough horizon for rolling windows and crossing midnight
+            'forecast_days' => 7,
+        ];
+    }
+
+    /**
+     * True if code belongs to rain/thunder families in Open-Meteo WMO table.
+     */
     private function isRainCode(?int $code): bool
     {
         if (null === $code) {
@@ -444,6 +585,19 @@ final class WeatherService
             || ($code >= 95 && $code <= 99); // thunder
     }
 
+    /**
+     * Resolve a consistent weather state (icon + label) for an hourly slot.
+     *
+     * Logic:
+     * - If precipitation is missing: fall back to weather code mapping.
+     * - If precipitation is ≤ epsilon: override rainy codes to "Cloudy" variants to avoid conflicts.
+     * - If precipitation is > epsilon: human-friendly precipitation label + drizzle/rain/snow icons.
+     *
+     * @param int|null   $code Weather code from API
+     * @param float|null $prec Precipitation (mm)
+     *
+     * @return array{icon: string, label: string}
+     */
     private function resolveHourlyState(?int $code, ?float $prec): array
     {
         if ($prec === null) {
@@ -472,28 +626,45 @@ final class WeatherService
         ];
     }
 
-    private function hourlyHorizonQuery(string $tz): array
+    /**
+     * Compute an approximate "feels like" temperature in °C.
+     * Uses Steadman apparent temperature approximation:
+     *   AT = T + 0.33*e - 0.70*wind - 4.00
+     * where e is water vapour pressure (hPa):
+     *   e = (rh/100) * 6.105 * exp(17.27*T / (237.7 + T))
+     * and wind is in m/s (converted from km/h).
+     *
+     * Returns null when inputs are insufficient.
+     */
+    private function computeFeelsLike(?float $tempC, ?float $windKmH, ?float $rh): ?float
     {
-        return [
-            'timezone'        => $tz,
-            'current_weather' => 'true',
-            'hourly'          => 'temperature_2m,precipitation,wind_speed_10m,winddirection_10m,weathercode,relative_humidity_2m,uv_index',
-            'daily'           => 'temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode,uv_index_max',
-            'forecast_days'   => 7,
-        ];
+        if ($tempC === null || $windKmH === null || $rh === null) {
+            return null;
+        }
+        try {
+            $windMs = $windKmH / 3.6;
+            $e      = ($rh / 100.0) * 6.105 * \exp((17.27 * $tempC) / (237.7 + $tempC));
+
+            return $tempC + (0.33 * $e) - (0.70 * $windMs) - 4.0;
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /**
-     * Build a cache key that is safe for Symfony Cache (no reserved characters).
-     * Reserved characters are replaced by dots: {}()/\@:
+     * Build a Redis-safe cache key by hashing the parts.
+     *
+     * @param string ...$parts Logical parts that will be joined into a single key.
      */
-    private function cacheKey(string ...$parts): string
+    protected function cacheKey(string ...$parts): string
     {
         $raw = implode('.', array_map(
             static fn ($p) => mb_strtolower(trim((string) $p)),
             $parts
         ));
 
+        // Replace Symfony reserved characters with dots
+        // Reserved: {}()/\@:
         return preg_replace('/[{}()\/\\\\@:]+/', '.', $raw) ?? 'k';
     }
 
