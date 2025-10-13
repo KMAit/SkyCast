@@ -321,14 +321,10 @@ main {
 /* ----------------------------
   Hourly chart sizing (stable)
 ----------------------------- */
-.chart-card .chart-wrap {
-  height: 220px;
-  width: 100%;
-}
-.chart-card canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
+.chart-wrap {
+  position: relative;
+  height: 300px;
+  margin-top: 1rem;
 }
 
 /* ----------------------------
@@ -755,8 +751,8 @@ main {
   .grid-4 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .chart-card .chart-wrap {
-    height: 200px;
+  .chart-wrap {
+    height: 360px;
   }
 }
 
@@ -828,8 +824,5 @@ main {
   }
   .carousel-track {
     padding: 6px 32px;
-  }
-  .chart-card .chart-wrap {
-    height: 180px;
   }
 }
