@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
+use Symfony\Contracts\Cache\TagAwareCacheInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
@@ -34,7 +34,7 @@ class WeatherService
 
     public function __construct(
         private readonly HttpClientInterface $http,
-        private readonly CacheInterface $cache,
+        private readonly TagAwareCacheInterface $cache,
     ) {
     }
 
@@ -169,8 +169,19 @@ class WeatherService
         try {
             /** @var array<string,mixed> $payload */
             $payload = $this->cache->get($cacheKey, function (ItemInterface $item) use ($latitude, $longitude, $timezone) {
-                // Weather data should be fresh but not real-time → cache for 10 minutes
                 $item->expiresAfter(600);
+
+                // Add tags to invalidate by coordinate pair
+                if (method_exists($item, 'tag')) {
+                    $item->tag([
+                        'forecast',
+                        sprintf(
+                            'forecast_%s_%s',
+                            number_format($latitude, 2),
+                            number_format($longitude, 2)
+                        ),
+                    ]);
+                }
 
                 $response = $this->http->request('GET', self::METEO_BASE, [
                     'query' => array_merge(
@@ -191,7 +202,6 @@ class WeatherService
             return null;
         }
 
-        // Guard: hourly arrays must exist
         if (!isset($payload['hourly']['time'], $payload['hourly']['temperature_2m'])) {
             return null;
         }
@@ -705,5 +715,21 @@ class WeatherService
         }
 
         return array_sum($filtered) / count($filtered);
+    }
+
+    /**
+     * Invalidate cached forecast for a specific coordinate pair.
+     */
+    public function invalidateForecast(float $latitude, float $longitude): void
+    {
+        $tag = sprintf(
+            'forecast_%s_%s',
+            number_format($latitude, 2),
+            number_format($longitude, 2)
+        );
+
+        if (method_exists($this->cache, 'invalidateTags')) {
+            $this->cache->invalidateTags([$tag]);
+        }
     }
 }

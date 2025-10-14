@@ -101,8 +101,7 @@ final class HomeController extends AbstractController
         $hasError  = !empty($error);
         $noResults = $searched && (empty($current) && empty($hoursToday) && empty($daily) && !$hasError);
 
-        // Render final template
-        return $this->render('home/index.html.twig', [
+        $response = $this->render('home/index.html.twig', [
             'title'               => 'SkyCast - Votre météo simplifiée',
             'app_name'            => 'SkyCast',
             'city'                => $city,
@@ -118,6 +117,18 @@ final class HomeController extends AbstractController
             'has_error'           => $hasError,
             'no_results'          => $noResults,
         ]);
+
+        // --- HTTP cache headers ---
+        $response->setPublic();
+        $response->setMaxAge(600);            // 10 min
+        $response->setSharedMaxAge(600);
+        $response->headers->addCacheControlDirective('must-revalidate', true);
+        $response->setEtag(md5(json_encode($forecast)));
+
+        // Handle conditional requests (304 Not Modified)
+        $response->isNotModified($request);
+
+        return $response;
     }
 
     /**

@@ -10,3 +10,4 @@ framework:
         adapter: cache.adapter.redis
         provider: '%env(REDIS_URL)%'
         default_lifetime: 600
+        tags: true
