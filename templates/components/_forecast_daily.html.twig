@@ -68,7 +68,7 @@
               <div>
                 <strong>Vent</strong> :
                 {% if d.wind_speed is not null %}
-                  {{ d.wind_speed|number_format(0) }} km/h
+                  <span class="js-wind" data-wind-kmh="{{ d.wind_speed }}">{{ d.wind_speed|number_format(0) }} km/h</span>
                 {% else %}
                   —
                 {% endif %}

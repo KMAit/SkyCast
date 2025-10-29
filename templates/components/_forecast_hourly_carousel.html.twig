@@ -88,7 +88,7 @@
               <div class="row wind-row">
                 <strong>Vent</strong>
                 <div class="wind-values">
-                  <span>
+                  <span class="js-wind" data-wind-kmh="{{ h.wind }}">
                     {{ h.wind is not null ? (h.wind|number_format(0, '.', '') ~ ' km/h') : '—' }}
                   </span>
                   {% if h.winddirection is defined and h.winddirection is not null %}

@@ -100,13 +100,22 @@
       <span>Données actuelles</span>
     </h2>
 
-    {# Unit toggle — °C / °F #}
-    <div class="toggle-bar">
+    {# Unit toggles — Temperature / Wind #}
+    <div class="toggle-group">
+      {# Temperature °C / °F #}
       <label class="switch" aria-label="Basculer entre Celsius et Fahrenheit">
         <span class="switch-label">°C</span>
-        <input type="checkbox" class="js-unit-toggle" />
+        <input type="checkbox" class="js-unit-toggle" data-unit-type="temp" />
         <span class="slider"></span>
         <span class="switch-label">°F</span>
+      </label>
+
+      {# Wind km/h / m/s #}
+      <label class="switch" aria-label="Basculer entre km/h et m/s">
+        <span class="switch-label">km/h</span>
+        <input type="checkbox" class="js-unit-toggle" data-unit-type="wind" />
+        <span class="slider"></span>
+        <span class="switch-label">m/s</span>
       </label>
     </div>
 
@@ -130,7 +139,9 @@
         {% set wind_deg = current.winddirection is not null ? current.winddirection : null %}
         {% set wind_html %}
           {% if wind_k is not null %}
-            <strong>{{ wind_k|number_format(0, '.', '') }} km/h</strong>
+            <span class="js-wind" data-wind-kmh="{{ wind_k|number_format(1, '.', '') }}">
+              <strong>{{ wind_k|number_format(1, '.', '') }} km/h</strong>
+            </span>
             {% if wind_deg is not null %}
               <svg class="wind-arrow" style="--deg: {{ wind_deg }}deg" aria-hidden="true" viewBox="0 0 24 24">
                 <path d="M12 3 L8 9 H11 V21 H13 V9 H16 Z" fill="currentColor"/>

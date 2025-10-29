@@ -423,6 +423,7 @@ main {
   align-items: center;
   gap: 10px;
   user-select: none;
+  padding-right: 5px;
 }
 .switch input {
   position: absolute;

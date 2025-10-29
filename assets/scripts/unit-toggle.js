@@ -1,49 +1,64 @@
-// SkyCast — Unit toggle (C / F) — version intégrée au core (ready/store/events)
+// SkyCast — Unified unit toggle system (Temperature / Wind)
 (function () {
-  const KEY = 'unit'; // "C" | "F"
+  console.log('Unit toggle script loaded.');
 
-  function normalize(u) {
-    return (u || 'C').toString().trim().toUpperCase() === 'F' ? 'F' : 'C';
+  const UNITS = {
+    temp: { key: 'unit_temp', default: 'C' }, // °C / °F
+    wind: { key: 'unit_wind', default: 'kmh' }, // km/h / m/s
+  };
+
+  // --- Conversion helpers ---
+  function toF(c) {
+    return (c * 9) / 5 + 32;
+  }
+  function kmhToMs(k) {
+    return k * 0.2778;
   }
 
-  function applyUnitToDom(unit) {
-    // Met à jour toutes les températures in-page (source = data-temp-c en °C)
+  // --- Core apply functions ---
+  function applyTemperature(unit) {
     document.querySelectorAll('.js-temp[data-temp-c]').forEach((el) => {
-      const c = parseFloat(el.getAttribute('data-temp-c'));
+      const c = parseFloat(el.dataset.tempC);
       if (Number.isNaN(c)) return;
-      if (unit === 'F') {
-        const f = Math.round(((c * 9) / 5 + 32) * 10) / 10;
-        el.textContent = `${f}°F`;
-      } else {
-        el.textContent = `${Math.round(c * 10) / 10}°C`;
-      }
+      el.textContent = unit === 'F' ? `${toF(c).toFixed(1)}°F` : `${c.toFixed(1)}°C`;
     });
 
-    // Informe le chart horaire (conversion en place)
-    if (window.SkyCast && typeof window.SkyCast.updateHourlyChartUnit === 'function') {
+    // Notify chart for conversion
+    if (window.SkyCast?.updateHourlyChartUnit) {
       window.SkyCast.updateHourlyChartUnit(unit);
     }
   }
 
-  function initSwitch(input) {
-    // État initial depuis le store (via core)
-    const stored = normalize(window.SkyCast?.store?.get(KEY, 'C'));
-    input.checked = stored === 'F';
-
-    // Application immédiate + event
-    applyUnitToDom(stored);
-    window.SkyCast?.events?.emit('unit-change', { unit: stored });
-
-    // Persist + apply on change
-    input.addEventListener('change', () => {
-      const unit = input.checked ? 'F' : 'C';
-      window.SkyCast?.store?.set(KEY, unit);
-      applyUnitToDom(unit);
-      window.SkyCast?.events?.emit('unit-change', { unit });
+  function applyWind(unit) {
+    document.querySelectorAll('.js-wind[data-wind-kmh]').forEach((el) => {
+      const kmh = parseFloat(el.dataset.windKmh);
+      if (Number.isNaN(kmh)) return;
+      const value = unit === 'ms' ? kmhToMs(kmh) : kmh;
+      el.textContent = `${value.toFixed(1)} ${unit === 'ms' ? 'm/s' : 'km/h'}`;
     });
   }
 
-  // Hook DOM
+  const applyMap = { temp: applyTemperature, wind: applyWind };
+
+  // --- Initialization ---
+  function initSwitch(input) {
+    const type = input.dataset.unitType; // temp | wind
+    const { key, default: def } = UNITS[type];
+    const stored = window.SkyCast?.store?.get(key, def) || def;
+
+    input.checked = stored !== def;
+    applyMap[type]?.(stored);
+    window.SkyCast?.events?.emit(`${type}-unit-change`, { unit: stored });
+
+    input.addEventListener('change', () => {
+      const newUnit = type === 'temp' ? (input.checked ? 'F' : 'C') : input.checked ? 'ms' : 'kmh';
+
+      window.SkyCast?.store?.set(key, newUnit);
+      applyMap[type]?.(newUnit);
+      window.SkyCast?.events?.emit(`${type}-unit-change`, { unit: newUnit });
+    });
+  }
+
   const ready =
     window.SkyCast?.ready ||
     ((fn) => {
